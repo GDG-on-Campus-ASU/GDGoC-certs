@@ -35,7 +35,7 @@ API_URL="https://api.certs.gdg-oncampus.dev"
 curl $API_URL/health
 
 # Expected response:
-# {"status":"ok","timestamp":"2025-10-29T..."}
+# {"status":"ok","timestamp":"2025-10-XXT..."}
 
 # Test 404 for non-existent endpoint
 curl $API_URL/api/nonexistent
