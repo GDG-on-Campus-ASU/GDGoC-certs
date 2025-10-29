@@ -21,20 +21,27 @@ This application provides:
 
 ## Project Structure
 
-This repository follows a monorepo structure on the `main` branch:
+This repository follows a monorepo structure:
 
 ```
 .
-├── backend/          # Node.js/Express API
-├── frontend/         # React application
-└── README.md         # This file
+├── backend/              # Node.js/Express API
+│   ├── src/             # Source code
+│   ├── schema.sql       # Database schema
+│   ├── Dockerfile       # Docker build configuration
+│   └── package.json
+├── frontend/            # React application
+│   ├── src/            # Source code
+│   ├── Dockerfile      # Docker build configuration
+│   ├── nginx.conf      # Nginx configuration for production
+│   └── package.json
+├── docker-compose.yml   # Docker Compose configuration
+├── .env.example        # Environment variables template
+├── DEPLOYMENT.md       # Deployment documentation
+└── README.md           # This file
 ```
 
-The `deployment` branch contains Docker-related files:
-- `docker-compose.yml`
-- `backend/Dockerfile`
-- `frontend/Dockerfile`
-- `frontend/nginx.conf`
+All source code and deployment files are maintained in this branch.
 
 ## Features
 
@@ -172,18 +179,21 @@ This is configured in the backend via the `ALLOWED_ORIGINS` environment variable
 
 ## Docker Deployment
 
-Docker deployment files are maintained in the `deployment` branch. The setup includes:
+For production deployment with Docker, see the comprehensive [DEPLOYMENT.md](DEPLOYMENT.md) guide.
 
-1. **PostgreSQL**: Database service with persistent volume
-2. **Backend API**: Node.js Express application
-3. **Frontend**: React app served via Nginx
-4. **Custom Network**: All services on `gdgoc-net` network
-5. **Nginx Proxy Manager**: External reverse proxy for SSL and routing
+Quick start:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+docker-compose up -d
+```
 
-No ports are exposed to the host. Nginx Proxy Manager routes traffic:
-- Admin domain → Frontend service
-- Public domain → Frontend service
-- API domain → Backend service
+The application uses Docker Compose with three services:
+- PostgreSQL database
+- Node.js backend API
+- React frontend with Nginx
+
+All services run on a custom Docker network and are accessed via Nginx Proxy Manager (no ports exposed to host).
 
 ## CSV Format for Bulk Upload
 
