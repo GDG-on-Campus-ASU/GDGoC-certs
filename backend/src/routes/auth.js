@@ -21,6 +21,12 @@ router.post('/token', async (req, res) => {
     if (!process.env.AUTHENTIK_ISSUER) {
       return res.status(500).json({ error: 'AUTHENTIK_ISSUER environment variable is not set' });
     }
+    if (!process.env.AUTHENTIK_CLIENT_ID) {
+      return res.status(500).json({ error: 'AUTHENTIK_CLIENT_ID environment variable is not set' });
+    }
+    if (!process.env.AUTHENTIK_CLIENT_SECRET) {
+      return res.status(500).json({ error: 'AUTHENTIK_CLIENT_SECRET environment variable is not set' });
+    }
     // Prepare token exchange request
     const tokenEndpoint = `${process.env.AUTHENTIK_ISSUER.replace(/\/$/, '')}/token/`;
     const params = new URLSearchParams({
