@@ -40,13 +40,13 @@ nano .env
 
 4. Start the services:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 5. Check service status:
 ```bash
-docker-compose ps
-docker-compose logs -f
+docker compose ps
+docker compose logs -f
 ```
 
 ## Environment Variables
@@ -132,33 +132,33 @@ docker network connect gdgoc-net <nginx-proxy-manager-container-name>
 
 ### Build Services
 ```bash
-docker-compose build
+docker compose build
 ```
 
 ### Start Services
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Stop Services
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ### View Logs
 ```bash
 # All services
-docker-compose logs -f
+docker compose logs -f
 
 # Specific service
-docker-compose logs -f backend
-docker-compose logs -f frontend
-docker-compose logs -f db
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f db
 ```
 
 ### Restart a Service
 ```bash
-docker-compose restart backend
+docker compose restart backend
 ```
 
 ### Update After Code Changes
@@ -167,25 +167,25 @@ After pulling new code from the repository:
 
 ```bash
 # Rebuild and restart services
-docker-compose build
-docker-compose up -d
+docker compose build
+docker compose up -d
 ```
 
 ## Database Management
 
 ### Access PostgreSQL
 ```bash
-docker-compose exec db psql -U postgres -d gdgoc_certs
+docker compose exec db psql -U postgres -d gdgoc_certs
 ```
 
 ### Backup Database
 ```bash
-docker-compose exec db pg_dump -U postgres gdgoc_certs > backup.sql
+docker compose exec db pg_dump -U postgres gdgoc_certs > backup.sql
 ```
 
 ### Restore Database
 ```bash
-docker-compose exec -T db psql -U postgres gdgoc_certs < backup.sql
+docker compose exec -T db psql -U postgres gdgoc_certs < backup.sql
 ```
 
 ## Volumes
@@ -194,7 +194,7 @@ docker-compose exec -T db psql -U postgres gdgoc_certs < backup.sql
 
 To remove volumes (will delete all data):
 ```bash
-docker-compose down -v
+docker compose down -v
 ```
 
 ## Troubleshooting
@@ -202,22 +202,22 @@ docker-compose down -v
 ### Services won't start
 1. Check environment variables in `.env`
 2. Verify Docker and Docker Compose versions
-3. Check logs: `docker-compose logs`
+3. Check logs: `docker compose logs`
 
 ### Database connection errors
-1. Ensure database service is healthy: `docker-compose ps`
-2. Check database logs: `docker-compose logs db`
+1. Ensure database service is healthy: `docker compose ps`
+2. Check database logs: `docker compose logs db`
 3. Verify DB_PASSWORD matches in all services
 
 ### Frontend build fails
 1. Check build arguments in docker-compose.yml
 2. Ensure all VITE_* variables are set in `.env`
-3. Check frontend logs during build: `docker-compose build frontend`
+3. Check frontend logs during build: `docker compose build frontend`
 
 ### Backend can't connect to database
 1. Wait for database to be healthy (healthcheck)
 2. Verify DB_HOST is set to `db` (service name)
-3. Check network connectivity: `docker-compose exec backend ping db`
+3. Check network connectivity: `docker compose exec backend ping db` 
 
 ### CORS errors
 1. Verify ALLOWED_ORIGINS in `.env` includes both domains
@@ -238,19 +238,19 @@ docker-compose down -v
 ### Regular Updates
 ```bash
 # Pull latest images
-docker-compose pull
+docker compose pull
 
 # Rebuild and restart
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ### Clean Up
 ```bash
 # Remove stopped containers
-docker-compose down
+docker compose down
 
 # Remove all (including volumes - WARNING: deletes data)
-docker-compose down -v
+docker compose down -v
 
 # Remove unused images
 docker image prune -a
@@ -265,7 +265,7 @@ Health checks are configured for all services:
 
 Check service health:
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 ## Support
