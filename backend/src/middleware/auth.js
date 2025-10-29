@@ -1,11 +1,14 @@
 import jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 
+// Cache max age for JWKS client (6 hours)
+const CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+
 // Create JWKS client for authentik
 const client = jwksClient({
   jwksUri: process.env.AUTHENTIK_JWKS_URI,
   cache: true,
-  cacheMaxAge: 21600000, // 6 hours
+  cacheMaxAge: CACHE_MAX_AGE_MS,
 });
 
 // Get signing key from JWKS
