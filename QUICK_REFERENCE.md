@@ -112,7 +112,6 @@ DB_PASSWORD=<strong_password>
 # authentik
 AUTHENTIK_ISSUER=https://auth.domain.com/application/o/gdgoc-certs/
 AUTHENTIK_JWKS_URI=https://auth.domain.com/application/o/gdgoc-certs/jwks/
-AUTHENTIK_AUDIENCE=<client_id>
 AUTHENTIK_CLIENT_ID=<client_id>
 AUTHENTIK_CLIENT_SECRET=<client_secret>
 

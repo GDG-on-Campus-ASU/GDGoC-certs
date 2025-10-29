@@ -46,7 +46,11 @@ services:
       # Authentik OIDC Configuration
       AUTHENTIK_ISSUER: ${AUTHENTIK_ISSUER:?Authentik issuer URL required}
       AUTHENTIK_JWKS_URI: ${AUTHENTIK_JWKS_URI:?Authentik JWKS URI required}
-      AUTHENTIK_AUDIENCE: ${AUTHENTIK_AUDIENCE:?Authentik audience required}
+      AUTHENTIK_CLIENT_ID: ${AUTHENTIK_CLIENT_ID:?Authentik client ID required}
+      AUTHENTIK_CLIENT_SECRET: ${AUTHENTIK_CLIENT_SECRET:?Authentik client secret required}
+      
+      # Frontend URL (for OAuth redirect)
+      FRONTEND_URL: ${FRONTEND_URL:?Frontend URL required}
       
       # CORS Configuration
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://sudo.certs-admin.certs.gdg-oncampus.dev,https://certs.gdg-oncampus.dev}

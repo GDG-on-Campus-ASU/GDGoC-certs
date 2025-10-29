@@ -105,7 +105,6 @@ Update your `.env` file with the authentik configuration:
 # Backend
 AUTHENTIK_ISSUER=https://auth.your-domain.com/application/o/gdgoc-certs/
 AUTHENTIK_JWKS_URI=https://auth.your-domain.com/application/o/gdgoc-certs/jwks/
-AUTHENTIK_AUDIENCE=<your-client-id>
 AUTHENTIK_CLIENT_ID=<your-client-id>
 AUTHENTIK_CLIENT_SECRET=<your-client-secret>
 

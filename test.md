@@ -15,7 +15,6 @@ Make sure these are set in your backend `.env` file:
 ```env
 AUTHENTIK_ISSUER=https://auth.your-domain.com/application/o/gdgoc-certs/
 AUTHENTIK_JWKS_URI=https://auth.your-domain.com/application/o/gdgoc-certs/jwks/
-AUTHENTIK_AUDIENCE=your-authentik-client-id
 AUTHENTIK_CLIENT_ID=your-authentik-client-id
 AUTHENTIK_CLIENT_SECRET=your-authentik-client-secret
 FRONTEND_URL=https://sudo.certs-admin.certs.gdg-oncampus.dev

@@ -56,7 +56,7 @@ All required environment variables are defined in `.env.example`. Copy this file
 ### Required Variables
 
 - **Database**: `DB_PASSWORD`
-- **Authentik**: `AUTHENTIK_ISSUER`, `AUTHENTIK_JWKS_URI`, `AUTHENTIK_AUDIENCE`, `AUTHENTIK_CLIENT_ID`, `AUTHENTIK_CLIENT_SECRET`, `VITE_AUTHENTIK_URL`, `VITE_AUTHENTIK_CLIENT_ID`
+- **Authentik**: `AUTHENTIK_ISSUER`, `AUTHENTIK_JWKS_URI`, `AUTHENTIK_CLIENT_ID`, `AUTHENTIK_CLIENT_SECRET`, `VITE_AUTHENTIK_URL`, `VITE_AUTHENTIK_CLIENT_ID`
 - **Frontend URL**: `FRONTEND_URL` (required for OAuth redirect)
 - **SMTP**: `SMTP_USER`, `SMTP_PASSWORD`
 - **API URL**: `VITE_API_URL`
