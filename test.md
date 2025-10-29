@@ -181,7 +181,7 @@ You can decode (but not verify) a JWT token locally to check its structure.
 
 ```bash
 # Decode JWT token locally using Node.js
-node -e "const token = process.argv[1]; const payload = Buffer.from(token.split('.')[1], 'base64').toString(); console.log(JSON.parse(payload));" "YOUR_TOKEN_HERE"
+node -e "const token = process.argv[2]; const payload = Buffer.from(token.split('.')[1], 'base64').toString(); console.log(JSON.parse(payload));" "YOUR_TOKEN_HERE"
 ```
 
 Or use the `jq` tool:
