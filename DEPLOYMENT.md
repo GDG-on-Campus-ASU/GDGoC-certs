@@ -23,7 +23,7 @@ All services run on a custom Docker network (`gdgoc-net`) and **do not expose po
 
 1. Clone the repository and checkout the deployment branch:
 ```bash
-git clone https://github.com/KirolosMFahem/GDGoC-certs.git
+git clone https://github.com/GDG-on-Campus-ASU/GDGoC-certs.git
 cd GDGoC-certs
 git checkout deployment
 ```
