@@ -28,9 +28,15 @@ const AuthCallback = () => {
       let accessToken = token;
       if (code && !token) {
         setStatus('Exchanging authorization code...');
-        
+
+        const apiUrl = import.meta.env.VITE_API_URL;
+        if (!apiUrl) {
+          setError('API URL is not configured. Please contact support.');
+          return;
+        }
+
         try {
-          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/token`, {
+          const response = await fetch(`${apiUrl}/api/auth/token`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
