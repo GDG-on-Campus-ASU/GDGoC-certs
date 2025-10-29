@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { validateAPI } from '../services/api';
 import './PublicValidationPage.css';
 
@@ -8,18 +8,7 @@ const PublicValidationPage = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  // Check for cert parameter in URL on component mount
-  React.useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const certId = params.get('cert');
-    if (certId) {
-      setUniqueId(certId);
-      handleValidate(certId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleValidate = async (certId = null) => {
+  const handleValidate = useCallback(async (certId = null) => {
     const idToValidate = certId || uniqueId.trim();
     
     if (!idToValidate) {
@@ -39,7 +28,17 @@ const PublicValidationPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [uniqueId]);
+
+  // Check for cert parameter in URL on component mount
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const certId = params.get('cert');
+    if (certId) {
+      setUniqueId(certId);
+      handleValidate(certId);
+    }
+  }, [handleValidate]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

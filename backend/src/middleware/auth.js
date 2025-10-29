@@ -32,31 +32,26 @@ export const authenticateToken = async (req, res, next) => {
     return res.status(401).json({ error: 'Access token required' });
   }
 
-  try {
-    // Verify token
-    jwt.verify(
-      token,
-      getKey,
-      {
-        audience: process.env.AUTHENTIK_AUDIENCE,
-        issuer: process.env.AUTHENTIK_ISSUER,
-        algorithms: ['RS256'],
-      },
-      (err, decoded) => {
-        if (err) {
-          console.error('JWT verification error:', err);
-          return res.status(403).json({ error: 'Invalid or expired token' });
-        }
-
-        // Attach decoded token to request
-        req.user = decoded;
-        next();
+  // Verify token
+  jwt.verify(
+    token,
+    getKey,
+    {
+      audience: process.env.AUTHENTIK_AUDIENCE,
+      issuer: process.env.AUTHENTIK_ISSUER,
+      algorithms: ['RS256'],
+    },
+    (err, decoded) => {
+      if (err) {
+        console.error('JWT verification error:', err);
+        return res.status(403).json({ error: 'Invalid or expired token' });
       }
-    );
-  } catch (error) {
-    console.error('Authentication error:', error);
-    return res.status(403).json({ error: 'Invalid token' });
-  }
+
+      // Attach decoded token to request
+      req.user = decoded;
+      next();
+    }
+  );
 };
 
 // Middleware to check if user is in GDGoC-Admins group

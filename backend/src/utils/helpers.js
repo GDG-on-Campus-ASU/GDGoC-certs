@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 
 /**
  * Generate a unique certificate ID
@@ -11,7 +11,7 @@ export const generateUniqueId = () => {
   const day = String(date.getDate()).padStart(2, '0');
   
   // Generate random 5-character alphanumeric string
-  const randomPart = uuidv4().replace(/-/g, '').substring(0, 5).toUpperCase();
+  const randomPart = crypto.randomBytes(3).toString('hex').substring(0, 5).toUpperCase();
   
   return `GDGOC-${year}${month}${day}-${randomPart}`;
 };

@@ -143,14 +143,12 @@ router.post('/generate-bulk', authenticateToken, async (req, res) => {
     const certificates = [];
     const errors = [];
 
-    // Prepare all certificate values and unique IDs up front
+    // Prepare all certificate values up front
     const values = [];
     const valuePlaceholders = [];
-    const uniqueIds = [];
     let idx = 1;
     for (const data of certificateData) {
       const unique_id = generateUniqueId();
-      uniqueIds.push(unique_id);
       values.push(
         unique_id,
         data.recipient_name,
