@@ -232,7 +232,7 @@ docker-compose exec backend nc -zv db 5432
 ### Authentication failing
 - Verify JWT token in browser dev tools
 - Check authentik configuration
-- Verify AUTHENTIK_* env vars (including CLIENT_ID and CLIENT_SECRET)
+- Verify AUTHENTIK_* env vars (including AUTHENTIK_CLIENT_ID and AUTHENTIK_CLIENT_SECRET)
 - Check user is in GDGoC-Admins group
 - See `test.md` for detailed troubleshooting
 

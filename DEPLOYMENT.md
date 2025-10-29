@@ -61,7 +61,7 @@ All required environment variables are defined in `.env.example`. Copy this file
 - **SMTP**: `SMTP_USER`, `SMTP_PASSWORD`
 - **API URL**: `VITE_API_URL`
 
-⚠️ **Important**: The `AUTHENTIK_CLIENT_SECRET` is sensitive. Never commit it to version control.
+⚠️ **Important**: The `AUTHENTIK_CLIENT_SECRET` is highly sensitive. Never commit it to version control, expose it in logs, display it in environment listings, or include it in frontend code. Keep it secure on the backend only.
 
 See `.env.example` for all available configuration options.
 
