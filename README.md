@@ -186,7 +186,7 @@ Quick start:
 ```bash
 cp .env.example .env
 # Edit .env with your configuration
-docker-compose up -d
+docker compose up -d
 ```
 
 The application uses Docker Compose with three services:
@@ -219,7 +219,7 @@ Requirements:
 
 ## License
 
-MIT
+GNU AGPL v3
 
 ## Contributing
 
