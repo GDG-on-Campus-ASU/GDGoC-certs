@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: gdgoc-db
+    # Note: The 'unless-stopped' restart policy will automatically restart the database container
+    # even after manual stops. Be aware that this may impact data consistency during backup
+    # operations or maintenance. Ensure the container is properly managed during such activities.
+    # Note: The 'unless-stopped' restart policy will automatically restart the database container
+    # even after manual stops (except when explicitly stopped with 'docker stop'). During maintenance
+    # or backup operations, ensure proper coordination to maintain data consistency.
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-gdgoc_certs}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Database password required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - gdgoc-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API (Node.js/Express)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: gdgoc-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Database Configuration
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-gdgoc_certs}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:?Database password required}
+      
+      # Authentik OIDC Configuration
+      AUTHENTIK_ISSUER: ${AUTHENTIK_ISSUER:?Authentik issuer URL required}
+      AUTHENTIK_JWKS_URI: ${AUTHENTIK_JWKS_URI:?Authentik JWKS URI required}
+      AUTHENTIK_AUDIENCE: ${AUTHENTIK_AUDIENCE:?Authentik audience required}
+      
+      # CORS Configuration
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://sudo.certs-admin.certs.gdg-oncampus.dev,https://certs.gdg-oncampus.dev}
+      
+      # Brevo (Sendinblue) SMTP Configuration
+      SMTP_HOST: ${SMTP_HOST:-smtp-relay.brevo.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:?SMTP user required}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:?SMTP password required}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@gdg-oncampus.dev}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-GDGoC Certificate System}
+      
+      # Server Configuration
+      PORT: 3001
+      NODE_ENV: production
+    networks:
+      - gdgoc-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend (React + Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-https://api.certs.gdg-oncampus.dev}
+        VITE_AUTHENTIK_URL: ${VITE_AUTHENTIK_URL:?Authentik URL required}
+        VITE_AUTHENTIK_CLIENT_ID: ${VITE_AUTHENTIK_CLIENT_ID:?Authentik client ID required}
+    container_name: gdgoc-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - gdgoc-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  gdgoc-net:
+    name: gdgoc-net
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: gdgoc_postgres_data
