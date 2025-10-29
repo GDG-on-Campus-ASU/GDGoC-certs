@@ -5,7 +5,7 @@ import jwksClient from 'jwks-rsa';
 const client = jwksClient({
   jwksUri: process.env.AUTHENTIK_JWKS_URI,
   cache: true,
-  cacheMaxAge: 86400000, // 24 hours
+  cacheMaxAge: 21600000, // 6 hours
 });
 
 // Get signing key from JWKS
