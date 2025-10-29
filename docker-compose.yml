@@ -6,6 +6,9 @@ services:
     image: postgres:15-alpine
     container_name: gdgoc-db
     # Note: The 'unless-stopped' restart policy will automatically restart the database container
+    # even after manual stops. Be aware that this may impact data consistency during backup
+    # operations or maintenance. Ensure the container is properly managed during such activities.
+    # Note: The 'unless-stopped' restart policy will automatically restart the database container
     # even after manual stops (except when explicitly stopped with 'docker stop'). During maintenance
     # or backup operations, ensure proper coordination to maintain data consistency.
     restart: unless-stopped
