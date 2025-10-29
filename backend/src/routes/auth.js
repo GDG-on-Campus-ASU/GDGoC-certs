@@ -54,6 +54,14 @@ router.post('/login', authenticateToken, requireAdminGroup, async (req, res) => 
       [ocid, name || email, email]
     );
 
+    // Log new user provisioning for audit/notification purposes
+    console.log('NEW USER AUTO-PROVISIONED:', {
+      ocid: newUser.rows[0].ocid,
+      name: newUser.rows[0].name,
+      email: newUser.rows[0].email,
+      timestamp: new Date().toISOString(),
+    });
+
     return res.status(201).json({
       success: true,
       user: {
