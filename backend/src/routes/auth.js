@@ -63,7 +63,7 @@ router.post('/token', async (req, res) => {
       // Only log safe fields from errorData to avoid leaking sensitive info
       const safeErrorLog = {
         error: errorData.error,
-        error_description: errorData.error_description
+        error_description: errorData.error_description,
       };
       console.error('Token exchange error:', safeErrorLog);
       return res.status(response.status).json({ 
