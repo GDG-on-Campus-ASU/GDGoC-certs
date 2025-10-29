@@ -73,6 +73,15 @@ router.post('/token', async (req, res) => {
 
     const tokenData = await response.json();
     
+    // Validate that we received an access token
+    if (!tokenData.access_token) {
+      console.error('Token exchange succeeded but no access_token in response:', {
+        has_token_type: !!tokenData.token_type,
+        has_expires_in: !!tokenData.expires_in,
+      });
+      return res.status(500).json({ error: 'Invalid token response from authentication provider' });
+    }
+    
     // Return the access token to the frontend
     return res.json({
       access_token: tokenData.access_token,
