@@ -158,6 +158,7 @@ Stores generated certificates:
 ## API Endpoints
 
 ### Authentication
+- `POST /api/auth/token` - Exchange OAuth authorization code for access token
 - `POST /api/auth/login` - Login with JWT (requires GDGoC-Admins group)
 - `GET /api/auth/me` - Get current user info
 - `PUT /api/auth/profile` - Update user profile
