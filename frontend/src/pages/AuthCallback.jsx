@@ -15,30 +15,50 @@ const AuthCallback = () => {
 
   const handleAuthCallback = async () => {
     try {
-      // In a real implementation, you would exchange the authorization code
-      // for an access token here. For this example, we'll assume the token
-      // is passed as a query parameter or hash fragment.
-      
-      // Get token from URL (adjust based on your authentik configuration)
+      // Get code or token from URL
       const code = searchParams.get('code');
       const token = searchParams.get('token') || window.location.hash.replace('#token=', '');
 
       if (!token && !code) {
-        setError('No authentication token received');
+        setError('No authentication code or token received');
         return;
       }
 
-      // If we have a code, we need to exchange it for a token
-      // This would typically be done by your backend
+      // If we have a code, exchange it for a token via backend
+      let accessToken = token;
       if (code && !token) {
-        setError('Token exchange not implemented. Please configure your OIDC provider to return tokens directly.');
-        return;
+        setStatus('Exchanging authorization code...');
+        
+        try {
+          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/token`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              code: code,
+              redirect_uri: `${window.location.origin}/auth/callback`,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Token exchange failed' }));
+            throw new Error(errorData.error || 'Failed to exchange authorization code for token');
+          }
+
+          const tokenData = await response.json();
+          accessToken = tokenData.access_token;
+        } catch (err) {
+          console.error('Token exchange error:', err);
+          setError(err.message || 'Failed to exchange authorization code for token');
+          return;
+        }
       }
 
       setStatus('Validating credentials...');
 
       // Call backend login endpoint with the token
-      const response = await authAPI.login(token);
+      const response = await authAPI.login(accessToken);
 
       setStatus('Authentication successful!');
 

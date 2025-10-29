@@ -5,6 +5,60 @@ import { authenticateToken, requireAdminGroup } from '../middleware/auth.js';
 const router = express.Router();
 
 /**
+ * POST /api/auth/token
+ * OAuth 2.0 token exchange endpoint
+ * Exchanges authorization code for access token
+ */
+router.post('/token', async (req, res) => {
+  try {
+    const { code, redirect_uri } = req.body;
+
+    if (!code) {
+      return res.status(400).json({ error: 'Authorization code required' });
+    }
+
+    // Prepare token exchange request
+    const tokenEndpoint = `${process.env.AUTHENTIK_ISSUER.replace(/\/$/, '')}/token/`;
+    const params = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code: code,
+      redirect_uri: redirect_uri || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback`,
+      client_id: process.env.AUTHENTIK_CLIENT_ID,
+      client_secret: process.env.AUTHENTIK_CLIENT_SECRET,
+    });
+
+    // Exchange code for token
+    const response = await fetch(tokenEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Token exchange failed' }));
+      console.error('Token exchange error:', errorData);
+      return res.status(response.status).json({ 
+        error: errorData.error || 'Failed to exchange authorization code for token' 
+      });
+    }
+
+    const tokenData = await response.json();
+    
+    // Return the access token to the frontend
+    return res.json({
+      access_token: tokenData.access_token,
+      token_type: tokenData.token_type || 'Bearer',
+      expires_in: tokenData.expires_in,
+    });
+  } catch (error) {
+    console.error('Token exchange error:', error);
+    return res.status(500).json({ error: 'Internal server error during token exchange' });
+  }
+});
+
+/**
  * POST /api/auth/login
  * Login endpoint - validates JWT and provisions user in database
  * Requires valid JWT token with GDGoC-Admins group membership
