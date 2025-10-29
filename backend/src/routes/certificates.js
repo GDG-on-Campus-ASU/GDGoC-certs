@@ -143,46 +143,77 @@ router.post('/generate-bulk', authenticateToken, async (req, res) => {
     const certificates = [];
     const errors = [];
 
+    // Prepare all certificate values and unique IDs up front
+    const values = [];
+    const valuePlaceholders = [];
+    const uniqueIds = [];
+    let idx = 1;
     for (const data of certificateData) {
-      try {
-        const unique_id = generateUniqueId();
+      const unique_id = generateUniqueId();
+      uniqueIds.push(unique_id);
+      values.push(
+        unique_id,
+        data.recipient_name,
+        data.recipient_email,
+        data.event_type,
+        data.event_name,
+        issuer_name,
+        org_name,
+        ocid
+      );
+      valuePlaceholders.push(
+        `($${idx}, $${idx + 1}, $${idx + 2}, $${idx + 3}, $${idx + 4}, $${idx + 5}, $${idx + 6}, $${idx + 7})`
+      );
+      idx += 8;
+    }
 
-        const result = await pool.query(
+    let result;
+    if (values.length > 0) {
+      try {
+        result = await pool.query(
           `INSERT INTO certificates 
            (unique_id, recipient_name, recipient_email, event_type, event_name, 
             issuer_name, org_name, generated_by)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           VALUES ${valuePlaceholders.join(', ')}
            RETURNING *`,
-          [unique_id, data.recipient_name, data.recipient_email, data.event_type, 
-           data.event_name, issuer_name, org_name, ocid]
+          values
         );
-
-        const certificate = result.rows[0];
-        certificates.push(certificate);
-
-        // Send email if recipient has email
-        if (data.recipient_email) {
-          try {
-            const validationUrl = `https://certs.gdg-oncampus.dev/?cert=${unique_id}`;
-            await sendCertificateEmail({
-              recipientEmail: data.recipient_email,
-              recipientName: data.recipient_name,
-              eventName: data.event_name,
-              uniqueId: unique_id,
-              validationUrl,
-              pdfUrl: certificate.pdf_url,
-            });
-          } catch (emailError) {
-            console.error('Failed to send email to', data.recipient_email, emailError);
-            // Don't fail the bulk operation if individual email fails
-          }
-        }
       } catch (certError) {
-        console.error('Failed to generate certificate for', data.recipient_name, certError);
-        errors.push({
-          recipient_name: data.recipient_name,
-          error: certError.message,
-        });
+        console.error('Failed to generate certificates in bulk', certError);
+        // If the whole batch fails, add all as errors
+        for (const data of certificateData) {
+          errors.push({
+            recipient_name: data.recipient_name,
+            error: certError.message,
+          });
+        }
+        result = { rows: [] };
+      }
+    } else {
+      result = { rows: [] };
+    }
+
+    // Map emails to the correct certificate row
+    for (let i = 0; i < result.rows.length; i++) {
+      const certificate = result.rows[i];
+      certificates.push(certificate);
+      const data = certificateData[i];
+      // Send email if recipient has email
+      if (data.recipient_email) {
+        try {
+          const validationUrl = `https://certs.gdg-oncampus.dev/?cert=${certificate.unique_id}`;
+          await sendCertificateEmail({
+            recipientEmail: data.recipient_email,
+            recipientName: data.recipient_name,
+            eventName: data.event_name,
+            uniqueId: certificate.unique_id,
+            validationUrl,
+            pdfUrl: certificate.pdf_url,
+          });
+        } catch (emailError) {
+          console.error('Failed to send email to', data.recipient_email, emailError);
+          // Don't fail the bulk operation if individual email fails
+        }
       }
     }
 
