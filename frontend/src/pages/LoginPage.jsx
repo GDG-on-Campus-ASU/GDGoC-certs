@@ -1,10 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { getLoginURL } from '../utils/auth';
 import './LoginPage.css';
 
 const LoginPage = () => {
-  const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   const handleLogin = () => {

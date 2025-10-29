@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { authAPI, setToken } from '../services/api';
+import { authAPI } from '../services/api';
 import './AuthCallback.css';
 
 const AuthCallback = () => {

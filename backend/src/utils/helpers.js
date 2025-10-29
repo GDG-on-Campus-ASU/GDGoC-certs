@@ -19,6 +19,7 @@ export const generateUniqueId = () => {
 /**
  * Parse CSV content and return array of certificate data
  * Expected CSV format: recipient_name,recipient_email,event_type,event_name
+ * Handles quoted fields that may contain commas
  */
 export const parseCSV = (csvContent) => {
   const lines = csvContent.trim().split('\n');
@@ -26,6 +27,40 @@ export const parseCSV = (csvContent) => {
   if (lines.length < 2) {
     throw new Error('CSV must contain header row and at least one data row');
   }
+  
+  // Helper function to parse a CSV line considering quotes
+  const parseCSVLine = (line) => {
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+      
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          // Escaped quote
+          current += '"';
+          i++; // Skip next quote
+        } else {
+          // Toggle quote mode
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // Field separator
+        values.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    // Add last field
+    values.push(current.trim());
+    
+    return values;
+  };
   
   // Remove header
   const dataLines = lines.slice(1);
@@ -36,8 +71,13 @@ export const parseCSV = (csvContent) => {
   dataLines.forEach((line, index) => {
     const rowNumber = index + 2; // +2 because we removed header and arrays are 0-indexed
     
-    // Simple CSV parser (handles basic cases)
-    const values = line.split(',').map(v => v.trim());
+    // Skip empty lines
+    if (!line.trim()) {
+      return;
+    }
+    
+    // Parse CSV line with proper quote handling
+    const values = parseCSVLine(line);
     
     if (values.length < 4) {
       errors.push(`Row ${rowNumber}: Incomplete data (expected 4 columns)`);

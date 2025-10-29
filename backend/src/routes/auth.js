@@ -11,7 +11,7 @@ const router = express.Router();
  */
 router.post('/login', authenticateToken, requireAdminGroup, async (req, res) => {
   try {
-    const { sub: ocid, name, email, groups } = req.user;
+    const { sub: ocid, name, email } = req.user;
 
     if (!ocid || !email) {
       return res.status(400).json({ error: 'Invalid token: missing required claims' });

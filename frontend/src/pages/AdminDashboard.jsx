@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI, certificateAPI, removeToken } from '../services/api';
 import './AdminDashboard.css';
@@ -9,7 +9,6 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('single');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
-  const [certificates, setCertificates] = useState([]);
 
   // Single certificate form
   const [singleForm, setSingleForm] = useState({
@@ -22,11 +21,12 @@ const AdminDashboard = () => {
   // CSV upload
   const [csvContent, setCsvContent] = useState('');
 
-  useEffect(() => {
-    loadUserData();
-  }, []);
+  const handleLogout = useCallback(() => {
+    removeToken();
+    navigate('/login');
+  }, [navigate]);
 
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     try {
       const response = await authAPI.getMe();
       setUser(response.user);
@@ -34,12 +34,11 @@ const AdminDashboard = () => {
       console.error('Failed to load user data:', error);
       handleLogout();
     }
-  };
+  }, [handleLogout]);
 
-  const handleLogout = () => {
-    removeToken();
-    navigate('/login');
-  };
+  useEffect(() => {
+    loadUserData();
+  }, [loadUserData]);
 
   const handleSingleFormChange = (e) => {
     setSingleForm({

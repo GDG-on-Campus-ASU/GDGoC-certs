@@ -16,6 +16,7 @@ const PublicValidationPage = () => {
       setUniqueId(certId);
       handleValidate(certId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleValidate = async (certId = null) => {

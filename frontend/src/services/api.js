@@ -2,7 +2,7 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // Get JWT token from localStorage
-const getToken = () => {
+export const getToken = () => {
   return localStorage.getItem('jwt_token');
 };
 
@@ -93,4 +93,7 @@ export default {
   auth: authAPI,
   certificate: certificateAPI,
   validate: validateAPI,
+  getToken,
+  setToken,
+  removeToken,
 };
