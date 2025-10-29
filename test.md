@@ -22,19 +22,24 @@ FRONTEND_URL=https://sudo.certs-admin.certs.gdg-oncampus.dev
 ALLOWED_ORIGINS=https://sudo.certs-admin.certs.gdg-oncampus.dev,https://certs.gdg-oncampus.dev
 ```
 
+⚠️ **Security Warning**: The `AUTHENTIK_CLIENT_SECRET` is sensitive information. Never commit it to version control, share it in logs, or expose it to the frontend. Keep it secure on the backend only.
+
 ## Test 1: Backend API Endpoint Availability
 
 Test that all API endpoints are responding correctly:
 
 ```bash
+# Replace $API_URL with your actual API URL (e.g., https://api.certs.gdg-oncampus.dev)
+API_URL="https://api.certs.gdg-oncampus.dev"
+
 # Test health check
-curl https://api.certs.gdg-oncampus.dev/health
+curl $API_URL/health
 
 # Expected response:
 # {"status":"ok","timestamp":"2025-10-29T..."}
 
 # Test 404 for non-existent endpoint
-curl https://api.certs.gdg-oncampus.dev/api/nonexistent
+curl $API_URL/api/nonexistent
 
 # Expected response:
 # {"error":"Endpoint not found"}
@@ -45,10 +50,14 @@ curl https://api.certs.gdg-oncampus.dev/api/nonexistent
 Test the token exchange endpoint (requires a valid authorization code):
 
 ```bash
+# Replace $API_URL and $FRONTEND_URL with your actual URLs
+API_URL="https://api.certs.gdg-oncampus.dev"
+FRONTEND_URL="https://sudo.certs-admin.certs.gdg-oncampus.dev"
+
 # This will fail without a valid code, but should return a proper error
-curl -X POST https://api.certs.gdg-oncampus.dev/api/auth/token \
+curl -X POST $API_URL/api/auth/token \
   -H "Content-Type: application/json" \
-  -d '{"code":"invalid_code","redirect_uri":"https://sudo.certs-admin.certs.gdg-oncampus.dev/auth/callback"}'
+  -d "{\"code\":\"invalid_code\",\"redirect_uri\":\"$FRONTEND_URL/auth/callback\"}"
 
 # Expected response (from authentik):
 # {"error":"Invalid authorization code"} or similar
@@ -57,7 +66,7 @@ curl -X POST https://api.certs.gdg-oncampus.dev/api/auth/token \
 ## Test 3: Full Authentication Flow
 
 ### Step 1: Initiate Login
-1. Open your browser to `https://sudo.certs-admin.certs.gdg-oncampus.dev`
+1. Open your browser to your frontend URL (e.g., `https://sudo.certs-admin.certs.gdg-oncampus.dev`)
 2. Click "Sign in with authentik"
 3. You should be redirected to authentik login page
 
@@ -67,7 +76,7 @@ curl -X POST https://api.certs.gdg-oncampus.dev/api/auth/token \
 3. You should be redirected back to the callback URL
 
 ### Step 3: Verify Callback Processing
-The URL will be: `https://sudo.certs-admin.certs.gdg-oncampus.dev/auth/callback?code=XXXXX`
+The URL will be: `https://your-frontend-url/auth/callback?code=XXXXX`
 
 Watch for these status messages in the UI:
 1. "Processing authentication..."
@@ -99,9 +108,13 @@ Open browser developer tools (F12) and check:
 After successful login, test authenticated endpoints:
 
 ```bash
-# Get current user info (replace TOKEN with the JWT from localStorage)
-curl https://api.certs.gdg-oncampus.dev/api/auth/me \
-  -H "Authorization: Bearer TOKEN"
+# Replace $API_URL and TOKEN with your actual values
+API_URL="https://api.certs.gdg-oncampus.dev"
+TOKEN="your-jwt-token-from-localStorage"
+
+# Get current user info
+curl $API_URL/api/auth/me \
+  -H "Authorization: Bearer $TOKEN"
 
 # Expected response:
 # {"user":{"ocid":"...","name":"...","email":"...","org_name":"...","can_login":true}}
@@ -116,7 +129,7 @@ curl https://api.certs.gdg-oncampus.dev/api/auth/me \
 ### Issue 2: "Endpoint not found"
 **Cause**: Backend API is not accessible or CORS is blocking requests.
 **Solutions**:
-- Check that backend is running: `curl https://api.certs.gdg-oncampus.dev/health`
+- Check that backend is running: `curl $API_URL/health` (replace $API_URL with your actual API URL)
 - Verify ALLOWED_ORIGINS includes your frontend domain
 - Check Nginx Proxy Manager configuration
 - Review backend logs for CORS errors
@@ -129,7 +142,7 @@ curl https://api.certs.gdg-oncampus.dev/api/auth/me \
 
 **Solutions**:
 - Double-check environment variables
-- Ensure redirect URI in authentik exactly matches: `https://sudo.certs-admin.certs.gdg-oncampus.dev/auth/callback`
+- Ensure redirect URI in authentik exactly matches your frontend callback URL (e.g., `https://your-frontend-url/auth/callback`)
 - Try the login flow again to get a fresh code
 
 ### Issue 4: "Invalid or expired token"
@@ -152,6 +165,7 @@ curl https://api.certs.gdg-oncampus.dev/api/auth/me \
 
 Check backend logs:
 ```bash
+# Replace with your actual container name if different
 docker logs gdgoc-certs-backend -f
 ```
 
@@ -162,11 +176,25 @@ Look for these messages:
 
 ### Test Token Validity
 
-You can decode (but not verify) a JWT token at https://jwt.io to check:
-- Token structure is correct
-- Claims include: `sub`, `email`, `name`, `groups`
+You can decode (but not verify) a JWT token locally to check its structure.
+
+⚠️ **Security Warning**: Never paste production tokens into online services like jwt.io, as this exposes sensitive data to third parties. Instead, use local tools to decode tokens:
+
+```bash
+# Decode JWT token locally using Node.js
+node -e "const token = process.argv[1]; const payload = Buffer.from(token.split('.')[1], 'base64').toString(); console.log(JSON.parse(payload));" "YOUR_TOKEN_HERE"
+```
+
+Or use the `jq` tool:
+```bash
+TOKEN="YOUR_TOKEN_HERE"
+echo $TOKEN | cut -d. -f2 | base64 -d | jq .
+```
+
+Verify the token includes:
+- Claims: `sub`, `email`, `name`, `groups`
 - `groups` array includes "GDGoC-Admins"
-- Token hasn't expired (`exp` claim)
+- Token hasn't expired (`exp` claim is in the future)
 
 ### Manual Token Exchange Test
 
@@ -175,9 +203,14 @@ To test token exchange manually:
 2. Copy the `code` parameter from the URL
 3. Within 1 minute, use curl to exchange it:
 ```bash
-curl -X POST https://api.certs.gdg-oncampus.dev/api/auth/token \
+# Replace $API_URL, $FRONTEND_URL, and CODE with your actual values
+API_URL="https://api.certs.gdg-oncampus.dev"
+FRONTEND_URL="https://sudo.certs-admin.certs.gdg-oncampus.dev"
+CODE="<paste-code-here>"
+
+curl -X POST $API_URL/api/auth/token \
   -H "Content-Type: application/json" \
-  -d '{"code":"<paste-code-here>","redirect_uri":"https://sudo.certs-admin.certs.gdg-oncampus.dev/auth/callback"}'
+  -d "{\"code\":\"$CODE\",\"redirect_uri\":\"$FRONTEND_URL/auth/callback\"}"
 ```
 
 ## Success Criteria
