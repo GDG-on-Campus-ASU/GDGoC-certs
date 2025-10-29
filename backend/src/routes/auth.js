@@ -27,12 +27,24 @@ router.post('/token', async (req, res) => {
     if (!process.env.AUTHENTIK_CLIENT_SECRET) {
       return res.status(500).json({ error: 'AUTHENTIK_CLIENT_SECRET environment variable is not set' });
     }
+    
+    // Validate redirect_uri against allowed values
+    const allowedRedirectUris = [
+      `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback`,
+      'http://localhost:5173/auth/callback', // Allow localhost for development
+    ];
+    
+    const validatedRedirectUri = redirect_uri || allowedRedirectUris[0];
+    if (!allowedRedirectUris.includes(validatedRedirectUri)) {
+      return res.status(400).json({ error: 'Invalid redirect_uri' });
+    }
+    
     // Prepare token exchange request
     const tokenEndpoint = `${process.env.AUTHENTIK_ISSUER.replace(/\/$/, '')}/token/`;
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
-      code: code,
-      redirect_uri: redirect_uri || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback`,
+      code,
+      redirect_uri: validatedRedirectUri,
       client_id: process.env.AUTHENTIK_CLIENT_ID,
       client_secret: process.env.AUTHENTIK_CLIENT_SECRET,
     });
