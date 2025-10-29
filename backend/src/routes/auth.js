@@ -42,7 +42,12 @@ router.post('/token', async (req, res) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Token exchange failed' }));
-      console.error('Token exchange error:', errorData);
+      // Only log safe fields from errorData to avoid leaking sensitive info
+      const safeErrorLog = {
+        error: errorData.error,
+        error_description: errorData.error_description
+      };
+      console.error('Token exchange error:', safeErrorLog);
       return res.status(response.status).json({ 
         error: errorData.error || 'Failed to exchange authorization code for token' 
       });
