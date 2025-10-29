@@ -72,8 +72,9 @@ The frontend uses hostname-based routing to serve different content:
 ### Prerequisites
 - Node.js 18+ and npm
 - PostgreSQL 14+
-- authentik instance (for authentication)
-- Brevo account (for email)
+- authentik instance (for authentication) - [Setup Guide](docs/AUTHENTIK_SETUP.md)
+- Brevo account (for email) - [Setup Guide](docs/BREVO_SETUP.md)
+- Nginx Proxy Manager (for production) - [Setup Guide](docs/NGINX_PROXY_MANAGER.md)
 
 ### Backend Setup
 
@@ -223,6 +224,13 @@ MIT
 ## Contributing
 
 This is a project for GDGoC. Please follow the established patterns and conventions when contributing.
+
+## Documentation
+
+- [Deployment Guide](DEPLOYMENT.md) - Docker deployment and operations
+- [authentik Setup](docs/AUTHENTIK_SETUP.md) - Configure OIDC authentication
+- [Brevo Setup](docs/BREVO_SETUP.md) - Configure SMTP email service
+- [Nginx Proxy Manager Setup](docs/NGINX_PROXY_MANAGER.md) - Configure reverse proxy
 
 ## Support
 
