@@ -2,6 +2,12 @@
 
 This guide explains how to configure authentik as an OIDC provider for the GDGoC Certificate Generator.
 
+## 🔥 Common Issue: "Token exchange not implemented"
+
+If you're seeing this error, skip to the [Troubleshooting section](#token-exchange-not-implemented--common-error) for a quick fix.
+
+**TL;DR:** Add `VITE_AUTHENTIK_RESPONSE_TYPE=id_token token` to your frontend `.env` file and rebuild.
+
 ## Prerequisites
 
 - Running authentik instance
@@ -156,10 +162,28 @@ Replace:
 
 ## Troubleshooting
 
-### "Token exchange not implemented"
-This error occurs when using Authorization Code Flow but authentik is not configured to support it. Solutions:
-- **Recommended**: Use Implicit Flow by setting `VITE_AUTHENTIK_RESPONSE_TYPE=id_token token` (default)
-- Or configure authentik provider with `Client Type: Confidential` and ensure `AUTHENTIK_CLIENT_SECRET` is set
+### "Token exchange not implemented" ⚠️ COMMON ERROR
+
+This is the most common authentication error and occurs when using Authorization Code Flow (`response_type=code`) without proper configuration.
+
+**Quick Fix (Recommended):**
+1. Ensure `VITE_AUTHENTIK_RESPONSE_TYPE=id_token token` is set in your frontend `.env` file
+2. This uses Implicit Flow which returns tokens directly and avoids backend token exchange
+3. Rebuild your frontend: `npm run build`
+4. Clear your browser cache and try logging in again
+
+**Alternative Fix (Advanced):**
+If you need to use Authorization Code Flow:
+1. In authentik, set your provider's **Client Type** to `Confidential`
+2. Generate a **Client Secret** in authentik
+3. Add `AUTHENTIK_CLIENT_SECRET=<your-secret>` to your backend `.env`
+4. Set `VITE_AUTHENTIK_RESPONSE_TYPE=code` in your frontend `.env`
+5. Restart both backend and frontend services
+
+**Why this happens:**
+- The frontend is configured to use `response_type=code` (Authorization Code Flow)
+- But the backend token exchange endpoint isn't reachable or authentik isn't configured for it
+- Using Implicit Flow (`id_token token`) returns tokens directly, bypassing the need for token exchange
 
 ### "Invalid redirect URI"
 - Ensure the redirect URI in authentik exactly matches: `https://sudo.certs-admin.certs.gdg-oncampus.dev/auth/callback`
