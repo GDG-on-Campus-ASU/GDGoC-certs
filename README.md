@@ -46,8 +46,8 @@ All source code and deployment files are maintained in this branch.
 ## Features
 
 ### Authentication & Authorization
-- **OIDC Integration**: Uses authentik as the identity provider
-- **Group-Based Access**: Only users in the "GDGoC-Admins" group can access the admin portal
+- **OIDC Integration**: Uses authentik as the identity provider with support for both Implicit and Authorization Code flows
+- **Flexible Access Control**: Optionally restrict access to users in the "GDGoC-Admins" group (configurable via `REQUIRE_ADMIN_GROUP` environment variable)
 - **Automatic Provisioning**: New users are automatically added to the database on first login
 - **Profile Setup**: One-time organization name setup (cannot be changed later)
 
