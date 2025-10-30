@@ -75,7 +75,11 @@ router.post('/token', async (req, res) => {
         error: errorData.error,
         error_description: errorData.error_description,
       };
-      console.error('Token exchange error:', safeErrorLog);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Token exchange error:', safeErrorLog);
+      } else {
+        console.error('Token exchange error occurred during token exchange.');
+      }
       return res.status(response.status).json({ 
         error: errorData.error || 'Failed to exchange authorization code for token' 
       });
