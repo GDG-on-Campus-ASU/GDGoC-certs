@@ -28,6 +28,11 @@ router.post('/token', async (req, res) => {
       return res.status(500).json({ error: 'AUTHENTIK_CLIENT_SECRET environment variable is not set' });
     }
     
+    // Validate that redirect_uri is provided
+    if (!redirect_uri) {
+      return res.status(400).json({ error: 'redirect_uri is required' });
+    }
+    
     // Validate redirect_uri against allowed values
     let allowedRedirectUris = [];
     if (process.env.NODE_ENV === 'development') {
@@ -44,8 +49,7 @@ router.post('/token', async (req, res) => {
       ];
     }
     
-    const validatedRedirectUri = redirect_uri || allowedRedirectUris[0];
-    if (!allowedRedirectUris.includes(validatedRedirectUri)) {
+    if (!allowedRedirectUris.includes(redirect_uri)) {
       return res.status(400).json({ error: 'Invalid redirect_uri' });
     }
     
@@ -54,7 +58,7 @@ router.post('/token', async (req, res) => {
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
       code,
-      redirect_uri: validatedRedirectUri,
+      redirect_uri,
       client_id: process.env.AUTHENTIK_CLIENT_ID,
       client_secret: process.env.AUTHENTIK_CLIENT_SECRET,
     });
