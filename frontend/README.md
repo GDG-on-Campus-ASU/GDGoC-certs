@@ -39,7 +39,10 @@ Create a `.env` file in the frontend directory:
 VITE_API_URL=https://api.certs.gdg-oncampus.dev
 VITE_AUTHENTIK_URL=https://auth.your-domain.com
 VITE_AUTHENTIK_CLIENT_ID=your-client-id
+VITE_AUTHENTIK_RESPONSE_TYPE=id_token token
 ```
+
+**Note**: `VITE_AUTHENTIK_RESPONSE_TYPE` defaults to `id_token token` (implicit flow) which is recommended. Use `code` for authorization code flow only if you've configured authentik accordingly.
 
 ## Hostname-Based Routing
 
