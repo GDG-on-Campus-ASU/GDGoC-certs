@@ -12,7 +12,12 @@ export const getLoginURL = () => {
   const clientId = import.meta.env.VITE_AUTHENTIK_CLIENT_ID || 'your-client-id';
   const redirectUri = `${window.location.origin}/auth/callback`;
   
-  return `${authentikURL}/application/o/authorize/?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20profile%20email`;
+  // Support both authorization code flow and implicit flow
+  // Use 'id_token token' for implicit flow which returns tokens directly in URL fragment
+  // This avoids the "Token exchange not implemented" error
+  const responseType = import.meta.env.VITE_AUTHENTIK_RESPONSE_TYPE || 'id_token token';
+  
+  return `${authentikURL}/application/o/authorize/?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=${encodeURIComponent(responseType)}&scope=openid%20profile%20email`;
 };
 
 // Parse JWT token (without verification - verification happens on backend)

@@ -17,7 +17,7 @@ POST /api/auth/token
 Body: { "code": "<authorization_code>", "redirect_uri": "<callback_url>" }
 # No authentication required - exchanges authorization code for access token
 
-# Login (requires JWT with GDGoC-Admins group)
+# Login (requires JWT, optionally requires GDGoC-Admins group)
 POST /api/auth/login
 Headers: Authorization: Bearer <jwt_token>
 
@@ -113,11 +113,12 @@ DB_PASSWORD=<strong_password>
 AUTHENTIK_ISSUER=https://auth.domain.com/application/o/gdgoc-certs/
 AUTHENTIK_JWKS_URI=https://auth.domain.com/application/o/gdgoc-certs/jwks/
 AUTHENTIK_CLIENT_ID=<client_id>
-AUTHENTIK_CLIENT_SECRET=<client_secret>
+AUTHENTIK_CLIENT_SECRET=<client_secret>  # Only needed for Authorization Code Flow
 
 # Frontend (build-time)
 VITE_AUTHENTIK_URL=https://auth.domain.com
 VITE_AUTHENTIK_CLIENT_ID=<client_id>
+VITE_AUTHENTIK_RESPONSE_TYPE=id_token token  # Use 'code' for Authorization Code Flow
 VITE_API_URL=https://api.certs.gdg-oncampus.dev
 
 # Frontend URL (used by backend)
@@ -126,6 +127,12 @@ FRONTEND_URL=https://sudo.certs-admin.certs.gdg-oncampus.dev
 # Brevo SMTP
 SMTP_USER=<brevo_email>
 SMTP_PASSWORD=<smtp_key>
+```
+
+### Optional
+```env
+# Require GDGoC-Admins group membership (default: true)
+REQUIRE_ADMIN_GROUP=true  # Set to 'false' to allow all authenticated users
 ```
 
 ⚠️ **Note**: `AUTHENTIK_CLIENT_SECRET` is sensitive - never commit it to version control.
@@ -160,7 +167,7 @@ Example: `GDGOC-20240315-A1B2C`
 ## Common Tasks
 
 ### Add a New Admin User
-1. Add user to `GDGoC-Admins` group in authentik
+1. (Optional) Add user to `GDGoC-Admins` group in authentik (required only if REQUIRE_ADMIN_GROUP=true)
 2. User logs in at admin portal
 3. System automatically provisions user in database
 4. User completes profile setup (org name)
@@ -231,9 +238,11 @@ docker-compose exec backend nc -zv db 5432
 ### Authentication failing
 - Verify JWT token in browser dev tools
 - Check authentik configuration
-- Verify AUTHENTIK_* env vars (including AUTHENTIK_CLIENT_ID and AUTHENTIK_CLIENT_SECRET)
-- Check user is in GDGoC-Admins group
-- See `test.md` for detailed troubleshooting
+- Verify AUTHENTIK_* env vars (including AUTHENTIK_CLIENT_ID)
+- If using Authorization Code Flow, verify AUTHENTIK_CLIENT_SECRET is set
+- If you get "Token exchange not implemented", use Implicit Flow by setting VITE_AUTHENTIK_RESPONSE_TYPE=id_token token
+- Check user is in GDGoC-Admins group (if REQUIRE_ADMIN_GROUP=true)
+- See `test.md` and `docs/AUTHENTIK_SETUP.md` for detailed troubleshooting
 
 ### Email not sending
 - Check Brevo credentials
