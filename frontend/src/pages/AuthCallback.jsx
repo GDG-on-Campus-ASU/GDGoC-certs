@@ -28,7 +28,7 @@ const AuthCallback = () => {
       const tokenFromQuery = searchParams.get('token');
 
       // Determine which token to use
-      let accessToken = accessTokenFromHash || idTokenFromHash || tokenFromQuery;
+      let accessToken = idTokenFromHash || accessTokenFromHash || tokenFromQuery;
 
       if (!accessToken && !code) {
         setError('No authentication code or token received from authentik');
