@@ -37,7 +37,7 @@ export const authenticateToken = async (req, res, next) => {
     token,
     getKey,
     {
-      audience: process.env.AUTHENTIK_AUDIENCE,
+      audience: process.env.AUTHENTIK_CLIENT_ID,
       issuer: process.env.AUTHENTIK_ISSUER,
       algorithms: ['RS256'],
     },
