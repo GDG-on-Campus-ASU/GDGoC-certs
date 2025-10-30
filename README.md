@@ -228,6 +228,7 @@ This is a project for GDGoC. Please follow the established patterns and conventi
 
 ## Documentation
 
+- [Troubleshooting Guide](docs/TROUBLESHOOTING.md) - Common issues and solutions
 - [Deployment Guide](DEPLOYMENT.md) - Docker deployment and operations
 - [authentik Setup](docs/AUTHENTIK_SETUP.md) - Configure OIDC authentication
 - [Brevo Setup](docs/BREVO_SETUP.md) - Configure SMTP email service
@@ -235,4 +236,7 @@ This is a project for GDGoC. Please follow the established patterns and conventi
 
 ## Support
 
-For issues or questions, please contact the GDGoC team.
+For issues or questions:
+1. Check the [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
+2. Review logs: `docker compose logs -f`
+3. Contact the GDGoC team
