@@ -36,7 +36,7 @@ This configuration:
 - Avoids the need for backend token exchange
 - Is a **quick fix** for the immediate authentication error
 
-**⚠️ Security Note**: The Implicit Flow is considered less secure than Authorization Code Flow and is deprecated by OAuth 2.0 best practices ([RFC 6749 Section 10.3](https://datatracker.ietf.org/doc/html/rfc6749#section-10.3)). It exposes tokens in the URL fragment which can be:
+**⚠️ Security Note**: The Implicit Flow is considered less secure than Authorization Code Flow and is deprecated by OAuth 2.0 best practices ([RFC 6749 Section 10.16](https://datatracker.ietf.org/doc/html/rfc6749#section-10.16), [OAuth 2.0 Security Best Current Practice](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics)). It exposes tokens in the URL fragment which can be:
 - Logged in browser history
 - Leaked through referrer headers when navigating to external sites
 - Captured by browser extensions or developer tools
