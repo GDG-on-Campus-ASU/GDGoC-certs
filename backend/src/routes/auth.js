@@ -29,10 +29,20 @@ router.post('/token', async (req, res) => {
     }
     
     // Validate redirect_uri against allowed values
-    const allowedRedirectUris = [
-      `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback`,
-      'http://localhost:5173/auth/callback', // Allow localhost for development
-    ];
+    let allowedRedirectUris = [];
+    if (process.env.NODE_ENV === 'development') {
+      allowedRedirectUris = [
+        `${process.env.FRONTEND_URL ? process.env.FRONTEND_URL : 'http://localhost:5173'}/auth/callback`,
+        'http://localhost:5173/auth/callback', // Allow localhost for development
+      ];
+    } else {
+      if (!process.env.FRONTEND_URL) {
+        return res.status(500).json({ error: 'FRONTEND_URL environment variable is not set' });
+      }
+      allowedRedirectUris = [
+        `${process.env.FRONTEND_URL}/auth/callback`,
+      ];
+    }
     
     const validatedRedirectUri = redirect_uri || allowedRedirectUris[0];
     if (!allowedRedirectUris.includes(validatedRedirectUri)) {
