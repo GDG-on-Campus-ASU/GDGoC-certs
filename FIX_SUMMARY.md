@@ -81,7 +81,7 @@ The backend already has a fully implemented token exchange endpoint at `POST /ap
 ## Security Considerations
 
 ### Implicit Flow Risks
-As documented in RFC 6749 Section 10.3, Implicit Flow has security vulnerabilities:
+As documented in RFC 6749 Section 10.16, Implicit Flow has security vulnerabilities:
 1. **Token Exposure in URL**: Access tokens appear in browser history
 2. **Referrer Leakage**: Tokens can leak via HTTP Referer header to external sites
 3. **Browser Extensions**: Tokens accessible to malicious browser extensions
