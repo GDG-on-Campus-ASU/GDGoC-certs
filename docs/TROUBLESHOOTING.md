@@ -43,7 +43,7 @@ Token exchange not implemented. Please configure your OIDC provider to return to
 
 **Why this works:** Using `id_token token` (Implicit Flow) returns tokens directly in the URL fragment, bypassing the need for backend token exchange.
 
-**⚠️ Security Note:** Implicit Flow is deprecated by OAuth 2.0 best practices and exposes tokens in URL fragments. This is a quick fix for immediate use. For production deployments, use Authorization Code Flow (see below).
+**⚠️ Security Note:** Implicit Flow is deprecated by OAuth 2.0 best practices (see [RFC 6749 Section 10.3](https://datatracker.ietf.org/doc/html/rfc6749#section-10.3) and [OAuth 2.0 Security Best Current Practice](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics)) and exposes tokens in URL fragments. This is a quick fix for immediate use. For production deployments, use Authorization Code Flow (see below).
 
 **Recommended Solution (More Secure for Production):**
 

@@ -36,7 +36,13 @@ This configuration:
 - Avoids the need for backend token exchange
 - Is a **quick fix** for the immediate authentication error
 
-**⚠️ Security Note**: The Implicit Flow is considered less secure than Authorization Code Flow and is deprecated by OAuth 2.0 best practices. It exposes tokens in the URL fragment which can be logged or leaked through browser history. This solution is provided as a quick fix to resolve the immediate authentication error, but **Authorization Code Flow should be properly configured for production use**.
+**⚠️ Security Note**: The Implicit Flow is considered less secure than Authorization Code Flow and is deprecated by OAuth 2.0 best practices ([RFC 6749 Section 10.3](https://datatracker.ietf.org/doc/html/rfc6749#section-10.3)). It exposes tokens in the URL fragment which can be:
+- Logged in browser history
+- Leaked through referrer headers when navigating to external sites
+- Captured by browser extensions or developer tools
+- Stored in server logs if misconfigured
+
+This solution is provided as a quick fix to resolve the immediate authentication error, but **Authorization Code Flow should be properly configured for production use**.
 
 ### 2. Improved Error Handling
 
@@ -94,8 +100,12 @@ const helpText = errorMessage.includes('Token exchange not implemented') || erro
 - It's simpler to configure and debug
 
 **⚠️ Security Considerations**:
-- Implicit Flow is **deprecated** in OAuth 2.0 security best practices
-- Tokens in URL fragments can be exposed through browser history, server logs, and referrer headers
+- Implicit Flow is **deprecated** in OAuth 2.0 security best practices ([RFC 6749 Section 10.3](https://datatracker.ietf.org/doc/html/rfc6749#section-10.3))
+- Tokens in URL fragments can be exposed through:
+  - Browser history
+  - Server logs
+  - Referrer headers when navigating to external sites
+  - Browser extensions and developer tools
 - This is provided as a **quick fix** for the immediate error
 - For production deployments, use Authorization Code Flow (see alternative below)
 

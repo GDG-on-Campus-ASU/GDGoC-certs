@@ -174,7 +174,7 @@ This is the most common authentication error and occurs when using Authorization
 3. Rebuild your frontend: `npm run build`
 4. Clear your browser cache and try logging in again
 
-**⚠️ Security Warning:** Implicit Flow is **deprecated** by OAuth 2.0 best practices because it exposes tokens in URL fragments (browser history, logs). This quick fix resolves the immediate authentication error but should only be used temporarily.
+**⚠️ Security Warning:** Implicit Flow is **deprecated** by OAuth 2.0 best practices ([RFC 6749 Section 10.3](https://datatracker.ietf.org/doc/html/rfc6749#section-10.3)) because it exposes tokens in URL fragments which can be leaked through browser history, referrer headers, and browser extensions. This quick fix resolves the immediate authentication error but should only be used temporarily.
 
 **Recommended for Production (More Secure):**
 Configure Authorization Code Flow properly:
