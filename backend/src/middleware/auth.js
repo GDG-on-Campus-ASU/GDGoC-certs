@@ -55,7 +55,17 @@ export const authenticateToken = async (req, res, next) => {
 };
 
 // Middleware to check if user is in GDGoC-Admins group
+// Can be disabled by setting REQUIRE_ADMIN_GROUP=false in environment
 export const requireAdminGroup = (req, res, next) => {
+  // Check if admin group requirement is enabled (default: true)
+  const requireGroup = process.env.REQUIRE_ADMIN_GROUP !== 'false';
+  
+  if (!requireGroup) {
+    // Admin group check is disabled, allow all authenticated users
+    next();
+    return;
+  }
+  
   const groups = req.user?.groups || [];
   
   if (!groups.includes('GDGoC-Admins')) {

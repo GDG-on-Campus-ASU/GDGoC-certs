@@ -15,18 +15,28 @@ const AuthCallback = () => {
 
   const handleAuthCallback = async () => {
     try {
-      // Get code or token from URL
+      // Get code or token from URL (support both authorization code and implicit flows)
       const code = searchParams.get('code');
-      const token = searchParams.get('token') || window.location.hash.replace('#token=', '');
+      
+      // Parse tokens from URL fragment (implicit flow)
+      const hash = window.location.hash.substring(1);
+      const hashParams = new URLSearchParams(hash);
+      const accessTokenFromHash = hashParams.get('access_token');
+      const idTokenFromHash = hashParams.get('id_token');
+      
+      // Also check query params for backward compatibility
+      const tokenFromQuery = searchParams.get('token');
 
-      if (!token && !code) {
-        setError('No authentication code or token received');
+      // Determine which token to use
+      let accessToken = accessTokenFromHash || idTokenFromHash || tokenFromQuery;
+
+      if (!accessToken && !code) {
+        setError('No authentication code or token received from authentik');
         return;
       }
 
-      // If we have a code, exchange it for a token via backend
-      let accessToken = token;
-      if (code && !token) {
+      // If we have a code, exchange it for a token via backend (authorization code flow)
+      if (code && !accessToken) {
         setStatus('Exchanging authorization code...');
 
         const apiUrl = import.meta.env.VITE_API_URL;

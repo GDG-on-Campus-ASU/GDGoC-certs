@@ -19,13 +19,16 @@ router.post('/token', async (req, res) => {
 
     // Validate AUTHENTIK_ISSUER environment variable
     if (!process.env.AUTHENTIK_ISSUER) {
-      return res.status(500).json({ error: 'AUTHENTIK_ISSUER environment variable is not set' });
+      console.error('AUTHENTIK_ISSUER environment variable is not set');
+      return res.status(500).json({ error: 'Authentication service configuration error. Please contact support.' });
     }
     if (!process.env.AUTHENTIK_CLIENT_ID) {
-      return res.status(500).json({ error: 'AUTHENTIK_CLIENT_ID environment variable is not set' });
+      console.error('AUTHENTIK_CLIENT_ID environment variable is not set');
+      return res.status(500).json({ error: 'Authentication service configuration error. Please contact support.' });
     }
     if (!process.env.AUTHENTIK_CLIENT_SECRET) {
-      return res.status(500).json({ error: 'AUTHENTIK_CLIENT_SECRET environment variable is not set' });
+      console.error('AUTHENTIK_CLIENT_SECRET environment variable is not set');
+      return res.status(500).json({ error: 'Authentication service configuration error. Please contact support.' });
     }
     
     // Validate that redirect_uri is provided
@@ -42,7 +45,8 @@ router.post('/token', async (req, res) => {
       ];
     } else {
       if (!process.env.FRONTEND_URL) {
-        return res.status(500).json({ error: 'FRONTEND_URL environment variable is not set' });
+        console.error('FRONTEND_URL environment variable is not set');
+        return res.status(500).json({ error: 'Authentication service configuration error. Please contact support.' });
       }
       allowedRedirectUris = [
         `${process.env.FRONTEND_URL}/auth/callback`,
@@ -50,6 +54,7 @@ router.post('/token', async (req, res) => {
     }
     
     if (!allowedRedirectUris.includes(redirect_uri)) {
+      console.error('Invalid redirect_uri:', redirect_uri);
       return res.status(400).json({ error: 'Invalid redirect_uri' });
     }
     
@@ -63,6 +68,8 @@ router.post('/token', async (req, res) => {
       client_secret: process.env.AUTHENTIK_CLIENT_SECRET,
     });
 
+    console.log('Attempting token exchange with authentik...');
+
     // Exchange code for token
     const response = await fetch(tokenEndpoint, {
       method: 'POST',
@@ -74,18 +81,17 @@ router.post('/token', async (req, res) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Token exchange failed' }));
-      // Only log safe fields from errorData to avoid leaking sensitive info
-      const safeErrorLog = {
+      // Log detailed error information
+      console.error('Token exchange failed:', {
+        status: response.status,
+        statusText: response.statusText,
         error: errorData.error,
         error_description: errorData.error_description,
-      };
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Token exchange error:', safeErrorLog);
-      } else {
-        console.error('Token exchange error occurred during token exchange.');
-      }
+      });
+      
+      // Return user-friendly error message
       return res.status(response.status).json({ 
-        error: errorData.error || 'Failed to exchange authorization code for token' 
+        error: errorData.error_description || errorData.error || 'Failed to exchange authorization code for token. Please try logging in again.' 
       });
     }
 
@@ -100,6 +106,8 @@ router.post('/token', async (req, res) => {
       return res.status(500).json({ error: 'Invalid token response from authentication provider' });
     }
     
+    console.log('Token exchange successful');
+    
     // Return the access token to the frontend
     return res.json({
       access_token: tokenData.access_token,
@@ -107,8 +115,8 @@ router.post('/token', async (req, res) => {
       expires_in: tokenData.expires_in,
     });
   } catch (error) {
-    console.error('Token exchange error:', error);
-    return res.status(500).json({ error: 'Internal server error during token exchange' });
+    console.error('Token exchange error:', error.message);
+    return res.status(500).json({ error: 'Internal server error during token exchange. Please try again.' });
   }
 });
 
