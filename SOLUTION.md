@@ -100,7 +100,7 @@ const helpText = errorMessage.includes('Token exchange not implemented') || erro
 - It's simpler to configure and debug
 
 **⚠️ Security Considerations**:
-- Implicit Flow is **deprecated** in OAuth 2.0 security best practices ([RFC 6749 Section 10.3](https://datatracker.ietf.org/doc/html/rfc6749#section-10.3))
+- Implicit Flow is **deprecated** in OAuth 2.0 security best practices ([RFC 6749 Section 10.16](https://datatracker.ietf.org/doc/html/rfc6749#section-10.16))
 - Tokens in URL fragments can be exposed through:
   - Browser history
   - Server logs
