@@ -63,7 +63,11 @@ const AuthCallback = () => {
             
             // Provide helpful guidance for token exchange errors
             const helpText = errorMessage.includes('Token exchange not implemented') || errorMessage.includes('token exchange')
-              ? '\n\nThis error typically occurs when using authorization code flow without proper backend configuration. To fix this:\n1. Set VITE_AUTHENTIK_RESPONSE_TYPE=id_token token in your .env file\n2. Or configure authentik with Client Type: Confidential and set AUTHENTIK_CLIENT_SECRET in backend'
+              ? `
+
+This error typically occurs when using authorization code flow without proper backend configuration. To fix this:
+1. Set VITE_AUTHENTIK_RESPONSE_TYPE=id_token token in your .env file
+2. Or configure authentik with Client Type: Confidential and set AUTHENTIK_CLIENT_SECRET in backend`
               : '';
             
             throw new Error(errorMessage + helpText);
