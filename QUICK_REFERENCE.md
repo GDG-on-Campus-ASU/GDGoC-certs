@@ -12,6 +12,11 @@
 
 ### Authentication (Protected)
 ```bash
+# Token exchange (OAuth 2.0)
+POST /api/auth/token
+Body: { "code": "<authorization_code>", "redirect_uri": "<callback_url>" }
+# No authentication required - exchanges authorization code for access token
+
 # Login (requires JWT with GDGoC-Admins group)
 POST /api/auth/login
 Headers: Authorization: Bearer <jwt_token>
@@ -107,17 +112,23 @@ DB_PASSWORD=<strong_password>
 # authentik
 AUTHENTIK_ISSUER=https://auth.domain.com/application/o/gdgoc-certs/
 AUTHENTIK_JWKS_URI=https://auth.domain.com/application/o/gdgoc-certs/jwks/
-AUTHENTIK_AUDIENCE=<client_id>
+AUTHENTIK_CLIENT_ID=<client_id>
+AUTHENTIK_CLIENT_SECRET=<client_secret>
 
 # Frontend (build-time)
 VITE_AUTHENTIK_URL=https://auth.domain.com
 VITE_AUTHENTIK_CLIENT_ID=<client_id>
 VITE_API_URL=https://api.certs.gdg-oncampus.dev
 
+# Frontend URL (used by backend)
+FRONTEND_URL=https://sudo.certs-admin.certs.gdg-oncampus.dev
+
 # Brevo SMTP
 SMTP_USER=<brevo_email>
 SMTP_PASSWORD=<smtp_key>
 ```
+
+⚠️ **Note**: `AUTHENTIK_CLIENT_SECRET` is sensitive - never commit it to version control.
 
 See `.env.example` for all variables.
 
@@ -220,8 +231,9 @@ docker-compose exec backend nc -zv db 5432
 ### Authentication failing
 - Verify JWT token in browser dev tools
 - Check authentik configuration
-- Verify AUTHENTIK_* env vars
+- Verify AUTHENTIK_* env vars (including AUTHENTIK_CLIENT_ID and AUTHENTIK_CLIENT_SECRET)
 - Check user is in GDGoC-Admins group
+- See `test.md` for detailed troubleshooting
 
 ### Email not sending
 - Check Brevo credentials
@@ -283,6 +295,7 @@ All critical columns have indexes:
 
 - [Full Documentation](README.md)
 - [Deployment Guide](DEPLOYMENT.md)
+- [Testing Guide](test.md)
 - [authentik Setup](docs/AUTHENTIK_SETUP.md)
 - [Brevo Setup](docs/BREVO_SETUP.md)
 - [Nginx Proxy Manager](docs/NGINX_PROXY_MANAGER.md)

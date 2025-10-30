@@ -5,6 +5,114 @@ import { authenticateToken, requireAdminGroup } from '../middleware/auth.js';
 const router = express.Router();
 
 /**
+ * POST /api/auth/token
+ * OAuth 2.0 token exchange endpoint
+ * Exchanges authorization code for access token
+ */
+router.post('/token', async (req, res) => {
+  try {
+    const { code, redirect_uri } = req.body;
+
+    if (!code) {
+      return res.status(400).json({ error: 'Authorization code required' });
+    }
+
+    // Validate AUTHENTIK_ISSUER environment variable
+    if (!process.env.AUTHENTIK_ISSUER) {
+      return res.status(500).json({ error: 'AUTHENTIK_ISSUER environment variable is not set' });
+    }
+    if (!process.env.AUTHENTIK_CLIENT_ID) {
+      return res.status(500).json({ error: 'AUTHENTIK_CLIENT_ID environment variable is not set' });
+    }
+    if (!process.env.AUTHENTIK_CLIENT_SECRET) {
+      return res.status(500).json({ error: 'AUTHENTIK_CLIENT_SECRET environment variable is not set' });
+    }
+    
+    // Validate that redirect_uri is provided
+    if (!redirect_uri) {
+      return res.status(400).json({ error: 'redirect_uri is required' });
+    }
+    
+    // Validate redirect_uri against allowed values
+    let allowedRedirectUris = [];
+    if (process.env.NODE_ENV === 'development') {
+      allowedRedirectUris = [
+        `${process.env.FRONTEND_URL ? process.env.FRONTEND_URL : 'http://localhost:5173'}/auth/callback`,
+        'http://localhost:5173/auth/callback', // Allow localhost for development
+      ];
+    } else {
+      if (!process.env.FRONTEND_URL) {
+        return res.status(500).json({ error: 'FRONTEND_URL environment variable is not set' });
+      }
+      allowedRedirectUris = [
+        `${process.env.FRONTEND_URL}/auth/callback`,
+      ];
+    }
+    
+    if (!allowedRedirectUris.includes(redirect_uri)) {
+      return res.status(400).json({ error: 'Invalid redirect_uri' });
+    }
+    
+    // Prepare token exchange request
+    const tokenEndpoint = `${process.env.AUTHENTIK_ISSUER.replace(/\/$/, '')}/token/`;
+    const params = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri,
+      client_id: process.env.AUTHENTIK_CLIENT_ID,
+      client_secret: process.env.AUTHENTIK_CLIENT_SECRET,
+    });
+
+    // Exchange code for token
+    const response = await fetch(tokenEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Token exchange failed' }));
+      // Only log safe fields from errorData to avoid leaking sensitive info
+      const safeErrorLog = {
+        error: errorData.error,
+        error_description: errorData.error_description,
+      };
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Token exchange error:', safeErrorLog);
+      } else {
+        console.error('Token exchange error occurred during token exchange.');
+      }
+      return res.status(response.status).json({ 
+        error: errorData.error || 'Failed to exchange authorization code for token' 
+      });
+    }
+
+    const tokenData = await response.json();
+    
+    // Validate that we received an access token
+    if (!tokenData.access_token) {
+      console.error('Token exchange succeeded but no access_token in response:', {
+        has_token_type: !!tokenData.token_type,
+        has_expires_in: !!tokenData.expires_in,
+      });
+      return res.status(500).json({ error: 'Invalid token response from authentication provider' });
+    }
+    
+    // Return the access token to the frontend
+    return res.json({
+      access_token: tokenData.access_token,
+      token_type: tokenData.token_type || 'Bearer',
+      expires_in: tokenData.expires_in,
+    });
+  } catch (error) {
+    console.error('Token exchange error:', error);
+    return res.status(500).json({ error: 'Internal server error during token exchange' });
+  }
+});
+
+/**
  * POST /api/auth/login
  * Login endpoint - validates JWT and provisions user in database
  * Requires valid JWT token with GDGoC-Admins group membership

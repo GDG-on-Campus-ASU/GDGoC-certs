@@ -105,16 +105,21 @@ Update your `.env` file with the authentik configuration:
 # Backend
 AUTHENTIK_ISSUER=https://auth.your-domain.com/application/o/gdgoc-certs/
 AUTHENTIK_JWKS_URI=https://auth.your-domain.com/application/o/gdgoc-certs/jwks/
-AUTHENTIK_AUDIENCE=<your-client-id>
+AUTHENTIK_CLIENT_ID=<your-client-id>
+AUTHENTIK_CLIENT_SECRET=<your-client-secret>
 
 # Frontend
 VITE_AUTHENTIK_URL=https://auth.your-domain.com
 VITE_AUTHENTIK_CLIENT_ID=<your-client-id>
+
+# Frontend URL (used by backend for OAuth redirect)
+FRONTEND_URL=https://sudo.certs-admin.certs.gdg-oncampus.dev
 ```
 
 Replace:
 - `auth.your-domain.com` with your authentik domain
 - `<your-client-id>` with the Client ID from Step 2
+- `<your-client-secret>` with the Client Secret from Step 2
 
 ## Step 7: Test Authentication
 
@@ -142,6 +147,12 @@ Replace:
 ### "CORS error"
 - Ensure ALLOWED_ORIGINS includes both domains
 - Verify Nginx Proxy Manager is forwarding correct headers
+
+### "Token exchange failed"
+- Verify AUTHENTIK_CLIENT_ID and AUTHENTIK_CLIENT_SECRET are correct
+- Check that the redirect_uri matches exactly what's configured in authentik
+- Ensure the authorization code hasn't expired (codes typically expire after 1 minute)
+- Check backend logs for detailed error messages from authentik
 
 ## Additional Security
 
