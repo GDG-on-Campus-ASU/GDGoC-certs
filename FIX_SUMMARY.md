@@ -172,7 +172,7 @@ All changes have been thoroughly tested and verified:
 
 ## References
 
-- [RFC 6749 Section 10.3 - Implicit Grant Security](https://datatracker.ietf.org/doc/html/rfc6749#section-10.3)
+- [RFC 6749 Section 10.16 - Implicit Grant Security](https://datatracker.ietf.org/doc/html/rfc6749#section-10.16)
 - [OAuth 2.0 Security Best Current Practice](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics)
 - [Authentik Documentation](https://goauthentik.io/docs/)
 - [OAuth 2.0 Grant Types](https://oauth.net/2/grant-types/)
