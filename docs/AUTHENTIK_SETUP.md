@@ -6,7 +6,9 @@ This guide explains how to configure authentik as an OIDC provider for the GDGoC
 
 If you're seeing this error, skip to the [Troubleshooting section](#token-exchange-not-implemented--common-error) for a quick fix.
 
-**TL;DR:** Add `VITE_AUTHENTIK_RESPONSE_TYPE=id_token token` to your frontend `.env` file and rebuild.
+**Quick Fix:** Add `VITE_AUTHENTIK_RESPONSE_TYPE=id_token token` to your frontend `.env` file and rebuild.
+
+**⚠️ Security Note:** This uses Implicit Flow which is deprecated. For production, configure Authorization Code Flow properly (see troubleshooting section).
 
 ## Prerequisites
 
@@ -166,24 +168,27 @@ Replace:
 
 This is the most common authentication error and occurs when using Authorization Code Flow (`response_type=code`) without proper configuration.
 
-**Quick Fix (Recommended):**
+**Quick Fix (Resolves Immediate Error):**
 1. Ensure `VITE_AUTHENTIK_RESPONSE_TYPE=id_token token` is set in your frontend `.env` file
 2. This uses Implicit Flow which returns tokens directly and avoids backend token exchange
 3. Rebuild your frontend: `npm run build`
 4. Clear your browser cache and try logging in again
 
-**Alternative Fix (Advanced):**
-If you need to use Authorization Code Flow:
+**⚠️ Security Warning:** Implicit Flow is **deprecated** by OAuth 2.0 best practices because it exposes tokens in URL fragments (browser history, logs). This quick fix resolves the immediate authentication error but should only be used temporarily.
+
+**Recommended for Production (More Secure):**
+Configure Authorization Code Flow properly:
 1. In authentik, set your provider's **Client Type** to `Confidential`
 2. Generate a **Client Secret** in authentik
 3. Add `AUTHENTIK_CLIENT_SECRET=<your-secret>` to your backend `.env`
 4. Set `VITE_AUTHENTIK_RESPONSE_TYPE=code` in your frontend `.env`
 5. Restart both backend and frontend services
 
-**Why this happens:**
-- The frontend is configured to use `response_type=code` (Authorization Code Flow)
-- But the backend token exchange endpoint isn't reachable or authentik isn't configured for it
-- Using Implicit Flow (`id_token token`) returns tokens directly, bypassing the need for token exchange
+**Why Authorization Code Flow is Better:**
+- Tokens never appear in URL (not logged or leaked through browser history)
+- Client secret adds an additional layer of security
+- Follows current OAuth 2.0 security best practices
+- The backend already has the token exchange endpoint implemented
 
 ### "Invalid redirect URI"
 - Ensure the redirect URI in authentik exactly matches: `https://sudo.certs-admin.certs.gdg-oncampus.dev/auth/callback`

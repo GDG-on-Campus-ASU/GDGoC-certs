@@ -34,7 +34,9 @@ This configuration:
 - Uses **Implicit Flow** instead of Authorization Code Flow
 - Returns tokens directly in the URL fragment (hash)
 - Avoids the need for backend token exchange
-- Is the recommended approach for this application
+- Is a **quick fix** for the immediate authentication error
+
+**⚠️ Security Note**: The Implicit Flow is considered less secure than Authorization Code Flow and is deprecated by OAuth 2.0 best practices. It exposes tokens in the URL fragment which can be logged or leaked through browser history. This solution is provided as a quick fix to resolve the immediate authentication error, but **Authorization Code Flow should be properly configured for production use**.
 
 ### 2. Improved Error Handling
 
@@ -91,7 +93,15 @@ const helpText = errorMessage.includes('Token exchange not implemented') || erro
 - This avoids the "Token exchange not implemented" error entirely
 - It's simpler to configure and debug
 
-### Alternative: Authorization Code Flow
+**⚠️ Security Considerations**:
+- Implicit Flow is **deprecated** in OAuth 2.0 security best practices
+- Tokens in URL fragments can be exposed through browser history, server logs, and referrer headers
+- This is provided as a **quick fix** for the immediate error
+- For production deployments, use Authorization Code Flow (see alternative below)
+
+### Recommended: Authorization Code Flow (More Secure)
+
+For production environments, Authorization Code Flow is more secure:
 
 If you specifically need Authorization Code Flow (more secure for confidential clients):
 

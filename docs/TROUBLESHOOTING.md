@@ -20,7 +20,7 @@ Token exchange not implemented. Please configure your OIDC provider to return to
 
 **Cause:** The application is using Authorization Code Flow (`response_type=code`) but the backend token exchange is not properly configured or not reachable.
 
-**Solution (Recommended):**
+**Quick Fix (Resolves Immediate Error):**
 
 1. **Add environment variable to frontend `.env`:**
    ```env
@@ -43,9 +43,11 @@ Token exchange not implemented. Please configure your OIDC provider to return to
 
 **Why this works:** Using `id_token token` (Implicit Flow) returns tokens directly in the URL fragment, bypassing the need for backend token exchange.
 
-**Alternative Solution (Advanced):**
+**⚠️ Security Note:** Implicit Flow is deprecated by OAuth 2.0 best practices and exposes tokens in URL fragments. This is a quick fix for immediate use. For production deployments, use Authorization Code Flow (see below).
 
-If you specifically need Authorization Code Flow:
+**Recommended Solution (More Secure for Production):**
+
+For production environments, properly configure Authorization Code Flow:
 
 1. In authentik, configure your provider with:
    - **Client Type:** `Confidential`
