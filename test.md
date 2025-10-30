@@ -177,7 +177,7 @@ Look for these messages:
 
 You can decode (but not verify) a JWT token locally to check its structure.
 
-⚠️ **Security Warning**: Never paste production tokens into online services like jwt.io, as this exposes sensitive data to third parties. Instead, use local tools to decode tokens:
+⚠️ **Security Warning**: Never paste production tokens into online services like JWT.io, as this exposes sensitive data to third parties. Instead, use local tools to decode tokens:
 
 ```bash
 # Decode JWT token locally using Node.js
