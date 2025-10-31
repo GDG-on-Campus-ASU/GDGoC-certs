@@ -10,32 +10,27 @@
 
 ## API Endpoints
 
-### Authentication (Protected)
+### Authentication (Protected by authentik Proxy)
 ```bash
-# Token exchange (OAuth 2.0)
-POST /api/auth/token
-Body: { "code": "<authorization_code>", "redirect_uri": "<callback_url>" }
-# No authentication required - exchanges authorization code for access token
-
-# Login (requires JWT, optionally requires GDGoC-Admins group)
+# Login (processes proxy headers, auto-provisions users)
 POST /api/auth/login
-Headers: Authorization: Bearer <jwt_token>
+# No Authorization header needed - authentication via proxy headers
 
 # Get current user
 GET /api/auth/me
-Headers: Authorization: Bearer <jwt_token>
+# No Authorization header needed - user identified via proxy headers
 
 # Update profile
 PUT /api/auth/profile
-Headers: Authorization: Bearer <jwt_token>
+# No Authorization header needed - user identified via proxy headers
 Body: { "name": "John Doe", "org_name": "GDG XYZ" }
 ```
 
-### Certificates (Protected)
+### Certificates (Protected by authentik Proxy)
 ```bash
 # Generate single certificate
 POST /api/certificates/generate
-Headers: Authorization: Bearer <jwt_token>
+# No Authorization header needed - user identified via proxy headers
 Body: {
   "recipient_name": "John Doe",
   "recipient_email": "john@example.com",
@@ -45,14 +40,14 @@ Body: {
 
 # Generate bulk certificates
 POST /api/certificates/generate-bulk
-Headers: Authorization: Bearer <jwt_token>
+# No Authorization header needed - user identified via proxy headers
 Body: {
   "csv_content": "recipient_name,recipient_email,event_type,event_name\n..."
 }
 
 # List certificates
 GET /api/certificates?page=1&limit=50
-Headers: Authorization: Bearer <jwt_token>
+# No Authorization header needed - user identified via proxy headers
 ```
 
 ### Public Endpoints
@@ -64,6 +59,8 @@ GET /api/validate/{unique_id}
 # Health check
 GET /health
 ```
+
+**Note:** Authentication is handled by Nginx Proxy Manager with authentik Proxy Provider. User information is passed via HTTP headers (`X-authentik-username`, `X-authentik-email`, etc.).
 
 ## Docker Commands
 
@@ -109,33 +106,23 @@ docker-compose exec -T db psql -U postgres gdgoc_certs < backup.sql
 # Database
 DB_PASSWORD=<strong_password>
 
-# authentik
-AUTHENTIK_ISSUER=https://auth.domain.com/application/o/gdgoc-certs/
-AUTHENTIK_JWKS_URI=https://auth.domain.com/application/o/gdgoc-certs/jwks/
-AUTHENTIK_CLIENT_ID=<client_id>
-AUTHENTIK_CLIENT_SECRET=<client_secret>  # Only needed for Authorization Code Flow
-
-# Frontend (build-time)
-VITE_AUTHENTIK_URL=https://auth.domain.com
-VITE_AUTHENTIK_CLIENT_ID=<client_id>
-VITE_AUTHENTIK_RESPONSE_TYPE=id_token token  # Use 'code' for Authorization Code Flow
-VITE_API_URL=https://api.certs.gdg-oncampus.dev
-
-# Frontend URL (used by backend)
+# Frontend URL (for CORS)
 FRONTEND_URL=https://sudo.certs-admin.certs.gdg-oncampus.dev
+
+# CORS Configuration
+ALLOWED_ORIGINS=https://sudo.certs-admin.certs.gdg-oncampus.dev,https://certs.gdg-oncampus.dev
+
+# API URL (build-time for frontend)
+VITE_API_URL=https://api.certs.gdg-oncampus.dev
 
 # Brevo SMTP
 SMTP_USER=<brevo_email>
 SMTP_PASSWORD=<smtp_key>
+SMTP_FROM_EMAIL=noreply@gdg-oncampus.dev
+SMTP_FROM_NAME=GDGoC Certificate System
 ```
 
-### Optional
-```env
-# Require GDGoC-Admins group membership (default: true)
-REQUIRE_ADMIN_GROUP=true  # Set to 'false' to allow all authenticated users
-```
-
-⚠️ **Note**: `AUTHENTIK_CLIENT_SECRET` is sensitive - never commit it to version control.
+**Note:** With authentik Proxy Provider, OIDC-related environment variables are no longer needed. Authentication is handled at the Nginx Proxy Manager level.
 
 See `.env.example` for all variables.
 
@@ -167,10 +154,11 @@ Example: `GDGOC-20240315-A1B2C`
 ## Common Tasks
 
 ### Add a New Admin User
-1. (Optional) Add user to `GDGoC-Admins` group in authentik (required only if REQUIRE_ADMIN_GROUP=true)
-2. User logs in at admin portal
-3. System automatically provisions user in database
-4. User completes profile setup (org name)
+1. Add user to `GDGoC-Admins` group in authentik
+2. Configure access to the application in authentik (Application > Policy / Group / User Bindings)
+3. User accesses admin portal - automatically redirected to authentik login
+4. System automatically provisions user in database based on proxy headers
+5. User completes profile setup (org name)
 
 ### Disable a User
 ```sql
@@ -236,13 +224,13 @@ docker-compose exec backend nc -zv db 5432
 ```
 
 ### Authentication failing
-- Verify JWT token in browser dev tools
-- Check authentik configuration
-- Verify AUTHENTIK_* env vars (including AUTHENTIK_CLIENT_ID)
-- If using Authorization Code Flow, verify AUTHENTIK_CLIENT_SECRET is set
-- If you get "Token exchange not implemented", use Implicit Flow by setting VITE_AUTHENTIK_RESPONSE_TYPE=id_token token
-- Check user is in GDGoC-Admins group (if REQUIRE_ADMIN_GROUP=true)
-- See `test.md` and `docs/AUTHENTIK_SETUP.md` for detailed troubleshooting
+- Verify Nginx Proxy Manager forward auth is configured correctly
+- Check authentik Proxy Provider and outpost are running
+- Verify user is in GDGoC-Admins group
+- Check authentik headers are being passed (`X-authentik-username`, `X-authentik-email`, etc.)
+- Review backend logs to see which headers are received
+- See `docs/AUTHENTIK_SETUP.md` and `docs/NGINX_PROXY_MANAGER.md` for detailed configuration
+- See `docs/TROUBLESHOOTING.md` for detailed troubleshooting
 
 ### Email not sending
 - Check Brevo credentials
@@ -279,13 +267,17 @@ docker inspect gdgoc-backend | grep -A 20 Health
 ## Security Checklist
 
 - [ ] Strong database password set
-- [ ] authentik properly configured with groups
+- [ ] authentik Proxy Provider properly configured
+- [ ] authentik access policies configured for GDGoC-Admins group
+- [ ] Nginx Proxy Manager forward auth configured correctly
+- [ ] Application not directly accessible (only via proxy)
 - [ ] Brevo SMTP credentials secure
 - [ ] SSL certificates active on all domains
 - [ ] CORS origins correctly configured
 - [ ] Nginx Proxy Manager access secured
 - [ ] Regular database backups scheduled
 - [ ] Log monitoring in place
+- [ ] authentik session timeout configured appropriately
 
 ## Performance
 
@@ -297,16 +289,16 @@ All critical columns have indexes:
 
 ### Caching
 - Frontend: Nginx caches static assets (1 year)
-- Backend: JWKS keys cached (24 hours)
+- Backend: No JWT/JWKS caching needed (authentication at proxy level)
 - Database: Connection pooling (max 20 connections)
 
 ## Links
 
 - [Full Documentation](README.md)
 - [Deployment Guide](DEPLOYMENT.md)
-- [Testing Guide](test.md)
-- [authentik Setup](docs/AUTHENTIK_SETUP.md)
+- [authentik Proxy Provider Setup](docs/AUTHENTIK_SETUP.md)
+- [Nginx Proxy Manager Setup](docs/NGINX_PROXY_MANAGER.md)
+- [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [Brevo Setup](docs/BREVO_SETUP.md)
-- [Nginx Proxy Manager](docs/NGINX_PROXY_MANAGER.md)
 - [Backend API Docs](backend/README.md)
 - [Frontend Docs](frontend/README.md)

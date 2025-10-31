@@ -1,37 +1,27 @@
+/**
+ * API Service for GDGoC Certificate Generator
+ * 
+ * With authentik Proxy Provider, authentication is handled at the proxy level.
+ * The frontend doesn't need to manage tokens - authentication headers are
+ * automatically added by the proxy before requests reach the backend.
+ */
+
 // API configuration
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-// Get JWT token from localStorage
-export const getToken = () => {
-  return localStorage.getItem('jwt_token');
-};
-
-// Set JWT token in localStorage
-export const setToken = (token) => {
-  localStorage.setItem('jwt_token', token);
-};
-
-// Remove JWT token from localStorage
-export const removeToken = () => {
-  localStorage.removeItem('jwt_token');
-};
-
 // API request helper
 const apiRequest = async (endpoint, options = {}) => {
-  const token = getToken();
-  
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
   };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
+  // No Authorization header needed - authentication via proxy headers
+  
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     headers,
+    credentials: 'include', // Include cookies for session management
   });
 
   if (!response.ok) {
@@ -44,8 +34,8 @@ const apiRequest = async (endpoint, options = {}) => {
 
 // Auth API
 export const authAPI = {
-  login: async (token) => {
-    setToken(token);
+  // Login - verify session with backend (no token needed, uses proxy headers)
+  login: async () => {
     return apiRequest('/api/auth/login', { method: 'POST' });
   },
   
@@ -93,7 +83,4 @@ export default {
   auth: authAPI,
   certificate: certificateAPI,
   validate: validateAPI,
-  getToken,
-  setToken,
-  removeToken,
 };

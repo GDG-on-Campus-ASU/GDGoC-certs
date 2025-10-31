@@ -1,45 +1,19 @@
-import { getToken } from '../services/api';
+/**
+ * Authentication utilities for authentik Proxy Provider
+ * 
+ * With proxy authentication, the frontend doesn't need to manage tokens
+ * or handle OAuth/OIDC flows. Authentication is handled by Nginx Proxy Manager
+ * with authentik, and the backend receives user info from proxy headers.
+ */
 
-// Check if user is authenticated
+// Check if user is authenticated by checking if we have user session
+// This is simplified - we just need to verify with backend
 export const isAuthenticated = () => {
-  return !!getToken();
-};
-
-// Get OIDC login URL
-export const getLoginURL = () => {
-  // This should be configured based on your authentik setup
-  const authentikURL = import.meta.env.VITE_AUTHENTIK_URL || 'https://auth.your-domain.com';
-  const clientId = import.meta.env.VITE_AUTHENTIK_CLIENT_ID || 'your-client-id';
-  const redirectUri = `${window.location.origin}/auth/callback`;
-  
-  // Support both authorization code flow and implicit flow
-  // Use 'id_token token' for implicit flow which returns tokens directly in URL fragment
-  // This avoids the "Token exchange not implemented" error
-  const responseType = import.meta.env.VITE_AUTHENTIK_RESPONSE_TYPE || 'id_token token';
-  
-  return `${authentikURL}/application/o/authorize/?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=${encodeURIComponent(responseType)}&scope=openid%20profile%20email`;
-};
-
-// Parse JWT token (without verification - verification happens on backend)
-export const parseJWT = (token) => {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    return JSON.parse(jsonPayload);
-  } catch (error) {
-    console.error('Failed to parse JWT:', error);
-    return null;
-  }
+  // With proxy auth, if the user can access the page, they're authenticated
+  // We'll verify with backend on first API call
+  return true; // Session is managed by proxy
 };
 
 export default {
   isAuthenticated,
-  getLoginURL,
-  parseJWT,
 };

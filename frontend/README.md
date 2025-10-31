@@ -37,22 +37,19 @@ Create a `.env` file in the frontend directory:
 
 ```env
 VITE_API_URL=https://api.certs.gdg-oncampus.dev
-VITE_AUTHENTIK_URL=https://auth.your-domain.com
-VITE_AUTHENTIK_CLIENT_ID=your-client-id
-VITE_AUTHENTIK_RESPONSE_TYPE=id_token token
 ```
 
-**Note**: `VITE_AUTHENTIK_RESPONSE_TYPE` defaults to `id_token token` (implicit flow) which is recommended. Use `code` for authorization code flow only if you've configured authentik accordingly.
+**Note:** With authentik Proxy Provider, authentik-related environment variables are no longer needed. Authentication is handled at the Nginx Proxy Manager level before requests reach the frontend.
 
 ## Hostname-Based Routing
 
 The application uses hostname-based routing to serve different content:
 
-- **`sudo.certs-admin.certs.gdg-oncampus.dev`**: Admin portal with authentication
-  - Login page
+- **`sudo.certs-admin.certs.gdg-oncampus.dev`**: Admin portal with authentik authentication via proxy
   - Dashboard for certificate generation
   - Settings page
   - Profile setup
+  - Authentication is handled by Nginx Proxy Manager + authentik before reaching the app
 
 - **`certs.gdg-oncampus.dev`**: Public validation page
   - Certificate validation by unique ID
@@ -63,7 +60,7 @@ During local development (localhost), the admin portal is served by default.
 ## Features
 
 ### Admin Portal
-- authentik OIDC authentication
+- authentik authentication via Nginx Proxy Manager (forward auth)
 - Single certificate generation
 - Bulk CSV upload
 - Profile management
@@ -83,8 +80,6 @@ frontend/
 │   │   ├── AdminApp.jsx
 │   │   └── ProtectedRoute.jsx
 │   ├── pages/           # Page components
-│   │   ├── LoginPage.jsx
-│   │   ├── AuthCallback.jsx
 │   │   ├── ProfileSetup.jsx
 │   │   ├── AdminDashboard.jsx
 │   │   ├── Settings.jsx

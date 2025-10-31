@@ -16,7 +16,7 @@ All services run on a custom Docker network (`gdgoc-net`) and **do not expose po
 - Docker Engine 20.10+
 - Docker Compose 2.0+
 - Nginx Proxy Manager (running separately)
-- authentik instance configured as OIDC provider
+- authentik instance configured with Proxy Provider
 - Brevo account for SMTP
 
 ## Quick Start
@@ -56,12 +56,11 @@ All required environment variables are defined in `.env.example`. Copy this file
 ### Required Variables
 
 - **Database**: `DB_PASSWORD`
-- **Authentik**: `AUTHENTIK_ISSUER`, `AUTHENTIK_JWKS_URI`, `AUTHENTIK_CLIENT_ID`, `AUTHENTIK_CLIENT_SECRET`, `VITE_AUTHENTIK_URL`, `VITE_AUTHENTIK_CLIENT_ID`
-- **Frontend URL**: `FRONTEND_URL` (required for OAuth redirect)
+- **Frontend URL**: `FRONTEND_URL` (used for CORS)
 - **SMTP**: `SMTP_USER`, `SMTP_PASSWORD`
 - **API URL**: `VITE_API_URL`
 
-⚠️ **Important**: The `AUTHENTIK_CLIENT_SECRET` is highly sensitive. Never commit it to version control, expose it in logs, display it in environment listings, or include it in frontend code. Keep it secure on the backend only.
+**Note:** With authentik Proxy Provider, you no longer need OIDC-related environment variables. Authentication is handled entirely by the proxy layer.
 
 See `.env.example` for all available configuration options.
 
@@ -80,33 +79,35 @@ networks:
 
 ## Nginx Proxy Manager Setup
 
-Configure Nginx Proxy Manager to route traffic to the services on the `gdgoc-net` network:
+Configure Nginx Proxy Manager to route traffic to the services on the `gdgoc-net` network with authentik forward authentication:
 
 ### Admin Portal
 - **Domain**: `sudo.certs-admin.certs.gdg-oncampus.dev`
 - **Forward Hostname/IP**: `gdgoc-frontend` (service name)
 - **Forward Port**: `80`
 - **SSL**: Enable with Let's Encrypt
-- **Websockets**: Disabled
+- **Forward Auth**: Configure authentik proxy provider (see [NGINX_PROXY_MANAGER.md](docs/NGINX_PROXY_MANAGER.md))
 
 ### Public Validation
 - **Domain**: `certs.gdg-oncampus.dev`
 - **Forward Hostname/IP**: `gdgoc-frontend` (service name)
 - **Forward Port**: `80`
 - **SSL**: Enable with Let's Encrypt
-- **Websockets**: Disabled
+- **Forward Auth**: None (public access)
 
 ### Backend API
 - **Domain**: `api.certs.gdg-oncampus.dev`
 - **Forward Hostname/IP**: `gdgoc-backend` (service name)
 - **Forward Port**: `3001`
 - **SSL**: Enable with Let's Encrypt
-- **Websockets**: Disabled
+- **Forward Auth**: Configure authentik proxy provider for protected endpoints (see [NGINX_PROXY_MANAGER.md](docs/NGINX_PROXY_MANAGER.md))
 
 **Note**: Ensure Nginx Proxy Manager is connected to the `gdgoc-net` network:
 ```bash
 docker network connect gdgoc-net <nginx-proxy-manager-container-name>
 ```
+
+For detailed configuration including forward authentication setup, see the [Nginx Proxy Manager Setup Guide](docs/NGINX_PROXY_MANAGER.md).
 
 ## Service Details
 
@@ -228,26 +229,28 @@ docker compose down -v
 3. Check backend logs for CORS-related errors
 
 ### Authentication errors
-1. **"Token exchange not implemented"**: Ensure you have the latest version with the OAuth token exchange endpoint
-2. **"Failed to exchange authorization code"**: 
-   - Verify AUTHENTIK_CLIENT_ID and AUTHENTIK_CLIENT_SECRET are correct
-   - Check that FRONTEND_URL matches your actual frontend domain
-   - Ensure redirect URI in authentik matches: `https://your-frontend-url/auth/callback`
-3. **"Invalid or expired token"**: 
-   - Verify AUTHENTIK_ISSUER and AUTHENTIK_JWKS_URI are correct
-   - Check authentik provider configuration includes all required scopes
-4. **"Access denied"**: User must be in the `GDGoC-Admins` group in authentik
+1. **"Cannot access admin portal"**: 
+   - Verify Nginx Proxy Manager forward auth is configured correctly
+   - Check that authentik outpost is running and accessible
+   - Review authentik logs for authentication errors
+   - Ensure user is in the `GDGoC-Admins` group
+2. **"User not found" or "Invalid user"**: 
+   - Verify authentik headers are being passed to the application
+   - Check Nginx Proxy Manager configuration for `proxy_set_header` directives
+   - Review backend logs to see which headers are received
+3. **"Access denied"**: User must be in the `GDGoC-Admins` group in authentik and have access to the application
 
-For detailed authentication troubleshooting, see `test.md`.
+For detailed authentication troubleshooting, see `docs/TROUBLESHOOTING.md`.
 
 ## Security Considerations
 
-1. **No Exposed Ports**: Services only accessible via Nginx Proxy Manager
+1. **No Exposed Ports**: Services only accessible via Nginx Proxy Manager with authentik authentication
 2. **Environment Variables**: Sensitive data stored in `.env` (not committed to git)
 3. **CORS Policy**: Strict CORS configuration limiting allowed origins
-4. **JWT Validation**: All protected endpoints validate authentik JWTs
+4. **Proxy Authentication**: All authentication handled at proxy layer by authentik
 5. **Non-Root Users**: All containers run as non-root users
 6. **SSL/TLS**: All public endpoints secured with Let's Encrypt via Nginx Proxy Manager
+7. **Header Trust**: Application trusts headers from proxy - ensure application is not directly accessible
 
 ## Maintenance
 
