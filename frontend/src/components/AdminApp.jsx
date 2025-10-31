@@ -1,19 +1,21 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import LoginPage from '../pages/LoginPage';
-import AuthCallback from '../pages/AuthCallback';
 import ProfileSetup from '../pages/ProfileSetup';
 import AdminDashboard from '../pages/AdminDashboard';
 import Settings from '../pages/Settings';
 import ProtectedRoute from './ProtectedRoute';
 
+/**
+ * Admin App Component
+ * 
+ * With authentik Proxy Provider, authentication is handled at the proxy level.
+ * Users are automatically redirected to authentik login by Nginx if not authenticated.
+ * No need for login page or auth callback routes in the application.
+ */
 const AdminApp = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        
         <Route
           path="/profile-setup"
           element={
