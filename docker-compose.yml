@@ -43,13 +43,7 @@ services:
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:?Database password required}
       
-      # Authentik OIDC Configuration
-      AUTHENTIK_ISSUER: ${AUTHENTIK_ISSUER:?Authentik issuer URL required}
-      AUTHENTIK_JWKS_URI: ${AUTHENTIK_JWKS_URI:?Authentik JWKS URI required}
-      AUTHENTIK_CLIENT_ID: ${AUTHENTIK_CLIENT_ID:?Authentik client ID required}
-      AUTHENTIK_CLIENT_SECRET: ${AUTHENTIK_CLIENT_SECRET:?Authentik client secret required}
-      
-      # Frontend URL (for OAuth redirect)
+      # Frontend URL (for CORS)
       FRONTEND_URL: ${FRONTEND_URL:?Frontend URL required}
       
       # CORS Configuration
@@ -81,9 +75,6 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-https://api.certs.gdg-oncampus.dev}
-        VITE_AUTHENTIK_URL: ${VITE_AUTHENTIK_URL:?Authentik URL required}
-        VITE_AUTHENTIK_CLIENT_ID: ${VITE_AUTHENTIK_CLIENT_ID:?Authentik client ID required}
-        VITE_AUTHENTIK_RESPONSE_TYPE: ${VITE_AUTHENTIK_RESPONSE_TYPE:-id_token token}
     container_name: gdgoc-frontend
     restart: unless-stopped
     depends_on:
