@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
+import './ProtectedRoute.css';
 
 /**
  * Protected Route Component
@@ -32,44 +33,16 @@ const ProtectedRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        flexDirection: 'column',
-        gap: '20px'
-      }}>
-        <div style={{ 
-          border: '4px solid #f3f3f3',
-          borderTop: '4px solid #3498db',
-          borderRadius: '50%',
-          width: '40px',
-          height: '40px',
-          animation: 'spin 1s linear infinite'
-        }}></div>
+      <div className="protected-route-container">
+        <div className="spinner"></div>
         <p>Verifying authentication...</p>
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        flexDirection: 'column',
-        gap: '20px',
-        padding: '20px'
-      }}>
+      <div className="protected-route-container with-padding error-message">
         <h2>Authentication Error</h2>
         <p>{error}</p>
         <p>Please contact your administrator if this issue persists.</p>
