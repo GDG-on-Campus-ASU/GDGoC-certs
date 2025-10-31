@@ -83,6 +83,7 @@ services:
         VITE_API_URL: ${VITE_API_URL:-https://api.certs.gdg-oncampus.dev}
         VITE_AUTHENTIK_URL: ${VITE_AUTHENTIK_URL:?Authentik URL required}
         VITE_AUTHENTIK_CLIENT_ID: ${VITE_AUTHENTIK_CLIENT_ID:?Authentik client ID required}
+        VITE_AUTHENTIK_RESPONSE_TYPE: ${VITE_AUTHENTIK_RESPONSE_TYPE:-id_token token}
     container_name: gdgoc-frontend
     restart: unless-stopped
     depends_on:
