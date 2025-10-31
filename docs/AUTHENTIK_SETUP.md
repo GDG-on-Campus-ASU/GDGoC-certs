@@ -2,6 +2,14 @@
 
 This guide explains how to configure authentik as an OIDC provider for the GDGoC Certificate Generator.
 
+## 🔥 Common Issue: "Token exchange not implemented"
+
+If you're seeing this error, skip to the [Troubleshooting section](#token-exchange-not-implemented--common-error) for a quick fix.
+
+**Quick Fix:** Add `VITE_AUTHENTIK_RESPONSE_TYPE=id_token token` to your frontend `.env` file and rebuild.
+
+**⚠️ Security Note:** This uses Implicit Flow which is deprecated. For production, configure Authorization Code Flow properly (see troubleshooting section).
+
 ## Prerequisites
 
 - Running authentik instance
@@ -156,10 +164,31 @@ Replace:
 
 ## Troubleshooting
 
-### "Token exchange not implemented"
-This error occurs when using Authorization Code Flow but authentik is not configured to support it. Solutions:
-- **Recommended**: Use Implicit Flow by setting `VITE_AUTHENTIK_RESPONSE_TYPE=id_token token` (default)
-- Or configure authentik provider with `Client Type: Confidential` and ensure `AUTHENTIK_CLIENT_SECRET` is set
+### "Token exchange not implemented" ⚠️ COMMON ERROR
+
+This is the most common authentication error and occurs when using Authorization Code Flow (`response_type=code`) without proper configuration.
+
+**Quick Fix (Resolves Immediate Error):**
+1. Ensure `VITE_AUTHENTIK_RESPONSE_TYPE=id_token token` is set in your frontend `.env` file
+2. This uses Implicit Flow which returns tokens directly and avoids backend token exchange
+3. Rebuild your frontend: `npm run build`
+4. Clear your browser cache and try logging in again
+
+**⚠️ Security Warning:** Implicit Flow is **deprecated** by OAuth 2.0 best practices ([RFC 6749 Section 10.16](https://datatracker.ietf.org/doc/html/rfc6749#section-10.16), [OAuth 2.0 Security Best Current Practice](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics)) because it exposes tokens in URL fragments which can be leaked through browser history, referrer headers, and browser extensions. This quick fix resolves the immediate authentication error but should only be used temporarily.
+
+**Recommended for Production (More Secure):**
+Configure Authorization Code Flow properly:
+1. In authentik, set your provider's **Client Type** to `Confidential`
+2. Generate a **Client Secret** in authentik
+3. Add `AUTHENTIK_CLIENT_SECRET=<your-secret>` to your backend `.env`
+4. Set `VITE_AUTHENTIK_RESPONSE_TYPE=code` in your frontend `.env`
+5. Restart both backend and frontend services
+
+**Why Authorization Code Flow is Better:**
+- Tokens never appear in URL (not logged or leaked through browser history)
+- Client secret adds an additional layer of security
+- Follows current OAuth 2.0 security best practices
+- The backend already has the token exchange endpoint implemented
 
 ### "Invalid redirect URI"
 - Ensure the redirect URI in authentik exactly matches: `https://sudo.certs-admin.certs.gdg-oncampus.dev/auth/callback`
