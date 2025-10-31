@@ -64,8 +64,6 @@ export const authenticateFromProxy = async (req, res, next) => {
   // Attach user information to request
   req.user = {
     sub: uid,           // Use uid as subject (similar to JWT sub claim)
-    ocid: uid,          // Kept for backward compatibility: some legacy consumers expect 'ocid' instead of 'sub'.
-                        // Remove this field only after all dependent code and clients have migrated to using 'sub'.
     email: email,
     name: name || email, // Fallback to email if name is not provided
     username: username || email,
