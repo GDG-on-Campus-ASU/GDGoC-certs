@@ -15,21 +15,20 @@ const ProtectedRoute = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    const checkAuthentication = async () => {
+      try {
+        // Call login endpoint to verify session and get/create user
+        const response = await authAPI.login();
+        setUser(response.user);
+        setLoading(false);
+      } catch (err) {
+        console.error('Authentication check failed:', err);
+        setError(err.message);
+        setLoading(false);
+      }
+    };
     checkAuthentication();
   }, []);
-
-  const checkAuthentication = async () => {
-    try {
-      // Call login endpoint to verify session and get/create user
-      const response = await authAPI.login();
-      setUser(response.user);
-      setLoading(false);
-    } catch (err) {
-      console.error('Authentication check failed:', err);
-      setError(err.message);
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (
