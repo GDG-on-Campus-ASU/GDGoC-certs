@@ -5,17 +5,17 @@ A full-stack, self-hosted web application for Google Developer Groups on Campus 
 ## Overview
 
 This application provides:
-- **Admin Portal**: Authenticated interface for GDGoC leaders to generate certificates
+- **Admin Portal**: Authenticated interface for GDGoC leaders to generate certificates (protected by authentik via Nginx Proxy Manager)
 - **Public Validation**: Public page to validate certificate authenticity
 - **Email Notifications**: Automatic email delivery of certificates via Brevo SMTP
-- **OIDC Authentication**: Secure authentication using authentik
+- **Proxy Authentication**: Secure authentication using authentik Proxy Provider with Nginx Proxy Manager
 
 ## Tech Stack
 
 - **Frontend**: React 18 with Vite
 - **Backend**: Node.js with Express
 - **Database**: PostgreSQL
-- **Authentication**: authentik (OIDC)
+- **Authentication**: authentik Proxy Provider with Nginx Proxy Manager
 - **Email**: Brevo (formerly Sendinblue) SMTP
 - **Deployment**: Docker & Docker Compose with Nginx Proxy Manager
 
@@ -46,9 +46,10 @@ All source code and deployment files are maintained in this branch.
 ## Features
 
 ### Authentication & Authorization
-- **OIDC Integration**: Uses authentik as the identity provider with support for both Implicit and Authorization Code flows
-- **Flexible Access Control**: Optionally restrict access to users in the "GDGoC-Admins" group (configurable via `REQUIRE_ADMIN_GROUP` environment variable)
-- **Automatic Provisioning**: New users are automatically added to the database on first login
+- **Proxy Authentication**: Uses authentik Proxy Provider with Nginx Proxy Manager for forward authentication
+- **Header-Based Auth**: Application reads user information from proxy headers set by authentik
+- **Group-Based Access Control**: Restrict access to users in the "GDGoC-Admins" group via authentik policies
+- **Automatic Provisioning**: New users are automatically added to the database on first access
 - **Profile Setup**: One-time organization name setup (cannot be changed later)
 
 ### Certificate Generation
@@ -72,9 +73,9 @@ The frontend uses hostname-based routing to serve different content:
 ### Prerequisites
 - Node.js 18+ and npm
 - PostgreSQL 14+
-- authentik instance (for authentication) - [Setup Guide](docs/AUTHENTIK_SETUP.md)
+- authentik instance with Proxy Provider configured - [Setup Guide](docs/AUTHENTIK_SETUP.md)
 - Brevo account (for email) - [Setup Guide](docs/BREVO_SETUP.md)
-- Nginx Proxy Manager (for production) - [Setup Guide](docs/NGINX_PROXY_MANAGER.md)
+- Nginx Proxy Manager with forward authentication - [Setup Guide](docs/NGINX_PROXY_MANAGER.md)
 
 ### Backend Setup
 
@@ -135,7 +136,7 @@ See [frontend/README.md](frontend/README.md) for detailed frontend documentation
 
 ### allowed_leaders
 Stores authorized leaders who can generate certificates:
-- `ocid` (TEXT, PRIMARY KEY): Unique authentik OCID
+- `ocid` (TEXT, PRIMARY KEY): Unique user identifier from authentik headers
 - `name` (TEXT): Leader's full name (appears as issuer on certificates)
 - `email` (TEXT, UNIQUE): Leader's email
 - `org_name` (TEXT, NULLABLE): Organization name (set once, cannot be changed)
@@ -158,8 +159,9 @@ Stores generated certificates:
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/token` - Exchange OAuth authorization code for access token
-- `POST /api/auth/login` - Login with JWT (requires GDGoC-Admins group)
+**Note:** Authentication is handled by authentik Proxy Provider via Nginx Proxy Manager. The application reads user information from headers set by the proxy.
+
+- `POST /api/auth/login` - Process login from proxy headers (auto-provision users)
 - `GET /api/auth/me` - Get current user info
 - `PUT /api/auth/profile` - Update user profile
 
@@ -169,7 +171,7 @@ Stores generated certificates:
 - `GET /api/certificates` - List user's certificates
 
 ### Public
-- `GET /api/validate/:unique_id` - Validate certificate (public)
+- `GET /api/validate/:unique_id` - Validate certificate (public, no authentication required)
 
 ## CORS Configuration
 
@@ -212,11 +214,13 @@ Requirements:
 
 ## Security Considerations
 
-1. **JWT Validation**: All protected endpoints validate JWT tokens
-2. **Group Membership**: Only GDGoC-Admins can access admin portal
-3. **CORS**: Strict CORS policy limiting allowed origins
-4. **No Exposed Ports**: Services communicate via Docker network
-5. **Environment Variables**: Sensitive data stored in environment variables
+1. **Proxy-Based Authentication**: All authentication is handled at the proxy layer by authentik
+2. **Header Trust**: Application trusts authentication headers set by Nginx Proxy Manager
+3. **Group-Based Access**: Only users in GDGoC-Admins group can access admin portal (configured in authentik)
+4. **CORS**: Strict CORS policy limiting allowed origins
+5. **No Exposed Ports**: Services communicate via Docker network, accessed only through proxy
+6. **Environment Variables**: Sensitive data stored in environment variables
+7. **Application Isolation**: Backend and frontend are not directly accessible, only through authenticated proxy
 
 ## License
 
@@ -230,9 +234,9 @@ This is a project for GDGoC. Please follow the established patterns and conventi
 
 - [Troubleshooting Guide](docs/TROUBLESHOOTING.md) - Common issues and solutions
 - [Deployment Guide](DEPLOYMENT.md) - Docker deployment and operations
-- [authentik Setup](docs/AUTHENTIK_SETUP.md) - Configure OIDC authentication
+- [authentik Proxy Provider Setup](docs/AUTHENTIK_SETUP.md) - Configure proxy authentication
 - [Brevo Setup](docs/BREVO_SETUP.md) - Configure SMTP email service
-- [Nginx Proxy Manager Setup](docs/NGINX_PROXY_MANAGER.md) - Configure reverse proxy
+- [Nginx Proxy Manager Setup](docs/NGINX_PROXY_MANAGER.md) - Configure forward authentication with authentik
 
 ## Support
 

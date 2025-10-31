@@ -1,35 +1,27 @@
-# Setting Up authentik OIDC Provider
+# Setting Up authentik Proxy Provider with Nginx Proxy Manager
 
-This guide explains how to configure authentik as an OIDC provider for the GDGoC Certificate Generator.
+This guide explains how to configure authentik as a Proxy Provider with Nginx Proxy Manager for the GDGoC Certificate Generator.
 
-## 🔥 Common Issue: "Token exchange not implemented"
+## Overview
 
-If you're seeing this error, skip to the [Troubleshooting section](#token-exchange-not-implemented--common-error) for a quick fix.
+Instead of using OIDC authentication directly in the application, we use **authentik's Proxy Provider** which integrates with Nginx Proxy Manager to handle authentication at the reverse proxy level. This approach:
 
-**Quick Fix:** Add `VITE_AUTHENTIK_RESPONSE_TYPE=id_token token` to your frontend `.env` file and rebuild.
-
-**⚠️ Security Note:** This uses Implicit Flow which is deprecated. For production, configure Authorization Code Flow properly (see troubleshooting section).
+- Simplifies application authentication code
+- Centralizes authentication at the proxy layer
+- Provides seamless SSO across multiple applications
+- Reduces security surface area by keeping authentication logic in one place
 
 ## Prerequisites
 
 - Running authentik instance
 - Admin access to authentik
+- Nginx Proxy Manager installed and running
 - GDGoC Certificate Generator backend and frontend deployed
+- Domain names configured (DNS pointing to your server)
 
-## Authentication Flow Options
+## Step 1: Create a Group
 
-The application supports two OIDC authentication flows:
-
-1. **Implicit Flow (Default)**: Tokens are returned directly in the URL fragment. This is the recommended approach and avoids the "Token exchange not implemented" error.
-2. **Authorization Code Flow**: Tokens are exchanged via the backend `/api/auth/token` endpoint. This requires additional backend configuration.
-
-By default, the application uses the **Implicit Flow** (`response_type=id_token token`).
-
-## Step 1: Create a Group (Optional)
-
-**Note**: Group requirement can be disabled by setting `REQUIRE_ADMIN_GROUP=false` in your backend `.env` file.
-
-If you want to restrict access to specific users:
+Create a group to manage which users can access the application:
 
 1. Navigate to **Directory > Groups** in authentik
 2. Click **Create**
@@ -39,30 +31,30 @@ If you want to restrict access to specific users:
 4. Click **Create**
 5. Add authorized users to this group
 
-## Step 2: Create an OAuth2/OIDC Provider
+**Note**: Only users in this group will be able to access the admin portal through the proxy.
+
+## Step 2: Create a Proxy Provider
 
 1. Navigate to **Applications > Providers** in authentik
 2. Click **Create**
-3. Select **OAuth2/OpenID Provider**
+3. Select **Proxy Provider**
 4. Configure the provider:
-   - **Name**: `GDGoC Certificates Provider`
-   - **Authorization Flow**: Select your default authorization flow (e.g., `default-authorization-flow`)
-   - **Client Type**: 
-     - Use `Public` for Implicit Flow (recommended)
-     - Use `Confidential` for Authorization Code Flow
-   - **Client ID**: Generate or enter a unique ID (save this for later)
-   - **Client Secret**: Only needed if using `Confidential` client type
-   - **Redirect URIs**: Add these URIs:
-     ```
-     https://sudo.certs-admin.certs.gdg-oncampus.dev/auth/callback
-     http://localhost:5173/auth/callback  (for local development)
-     ```
-   - **Signing Key**: Select your default signing key
-   - **Scopes**: 
-     - `openid`
-     - `email`
-     - `profile`
-5. Click **Create**
+   - **Name**: `GDGoC Certificates Proxy Provider`
+   - **Authorization Flow**: Select your default authorization flow (e.g., `default-provider-authorization-implicit-consent`)
+   - **Type**: `Forward auth (single application)`
+   - **External host**: `https://sudo.certs-admin.certs.gdg-oncampus.dev`
+   - **Internal host**: Leave blank (Nginx Proxy Manager handles forwarding)
+   - **Internal host SSL Validation**: Unchecked (internal communication is HTTP)
+   
+5. Under **Advanced protocol settings**:
+   - **Token validity**: `hours=24` (adjust as needed)
+   - **Send HTTP-Basic Username**: Unchecked
+   - **Send HTTP-Basic Password**: Unchecked
+   - **Mode**: `Forward auth (single application)`
+   
+6. Click **Create**
+
+**Important**: The proxy provider will set authentication headers that the application will read to identify users.
 
 ## Step 3: Create an Application
 
@@ -71,156 +63,175 @@ If you want to restrict access to specific users:
 3. Configure the application:
    - **Name**: `GDGoC Certificates`
    - **Slug**: `gdgoc-certs`
-   - **Provider**: Select the provider you just created
+   - **Provider**: Select the proxy provider you just created
    - **Launch URL**: `https://sudo.certs-admin.certs.gdg-oncampus.dev`
+   - **Policy engine mode**: `any` (or configure according to your needs)
 4. Click **Create**
 
-## Step 4: Configure Token Claims
+## Step 4: Configure Access Control (Optional)
 
-**Note**: Groups claim is only needed if you set `REQUIRE_ADMIN_GROUP=true` (default).
+If you want to restrict access to only members of the `GDGoC-Admins` group:
 
-1. Go back to your provider (**Applications > Providers**)
-2. Edit the `GDGoC Certificates Provider`
-3. Navigate to **Advanced protocol settings**
-4. Ensure these claims are mapped:
-   - `sub` (subject) - User's unique ID (OCID)
-   - `name` - User's full name
-   - `email` - User's email address
-   - `groups` - User's group memberships (optional, only if using group-based access control)
+1. Navigate to **Applications > Applications**
+2. Click on the `GDGoC Certificates` application
+3. Go to the **Policy / Group / User Bindings** tab
+4. Click **Bind existing policy/group/user**
+5. Select the `GDGoC-Admins` group
+6. Set **Order**: `0`
+7. Click **Create**
 
-To add the groups claim (if needed):
-1. Navigate to **Customization > Property Mappings**
-2. Click **Create**
-3. Select **Scope Mapping**
-4. Configure:
-   - **Name**: `GDGoC Groups`
-   - **Scope name**: `groups`
-   - **Expression**:
-     ```python
-     return {
-         "groups": [group.name for group in request.user.ak_groups.all()]
-     }
-     ```
-5. Click **Create**
-6. Go back to your provider and add this scope mapping
+This ensures only users in the GDGoC-Admins group can access the application through the proxy.
 
-## Step 5: Get Configuration URLs
+## Step 5: Get Outpost Configuration
 
-From your authentik instance, note these URLs:
+authentik uses "Outposts" to handle proxy authentication. You need to configure an outpost:
 
-1. **Issuer URL**: 
-   ```
-   https://auth.your-domain.com/application/o/gdgoc-certs/
-   ```
+1. Navigate to **Applications > Outposts** in authentik
+2. Click on the default **Embedded Outpost** or create a new one
+3. Click **Edit**
+4. Under **Applications**, add your `GDGoC Certificates` application
+5. Click **Update**
 
-2. **JWKS URI**: 
-   ```
-   https://auth.your-domain.com/application/o/gdgoc-certs/jwks/
-   ```
+Note the **Integration** settings - you'll need the authentik outpost endpoint URL for Nginx Proxy Manager configuration.
 
-3. **Authorization Endpoint**: 
-   ```
-   https://auth.your-domain.com/application/o/authorize/
-   ```
+## Step 6: Configure Nginx Proxy Manager
 
-## Step 6: Update Environment Variables
+Now configure Nginx Proxy Manager to use authentik for authentication. See the [Nginx Proxy Manager Setup Guide](NGINX_PROXY_MANAGER.md) for detailed instructions on:
 
-Update your `.env` file with the authentik configuration:
+1. Setting up forward authentication to authentik
+2. Configuring proxy headers
+3. Setting up the admin portal domain with authentik authentication
+4. Configuring the public validation domain (no authentication required)
+
+## Step 7: Update Environment Variables
+
+Update your `.env` file with the simplified configuration for proxy authentication:
 
 ```env
-# Backend
-AUTHENTIK_ISSUER=https://auth.your-domain.com/application/o/gdgoc-certs/
-AUTHENTIK_JWKS_URI=https://auth.your-domain.com/application/o/gdgoc-certs/jwks/
-AUTHENTIK_CLIENT_ID=<your-client-id>
-AUTHENTIK_CLIENT_SECRET=<your-client-secret>  # Only needed for Authorization Code Flow
+# Database Configuration (unchanged)
+DB_NAME=gdgoc_certs
+DB_USER=postgres
+DB_PASSWORD=your_secure_database_password_here
 
-# Optional: Require GDGoC-Admins group membership (default: true)
-REQUIRE_ADMIN_GROUP=true
-
-# Frontend
-VITE_AUTHENTIK_URL=https://auth.your-domain.com
-VITE_AUTHENTIK_CLIENT_ID=<your-client-id>
-
-# Response type: 'id_token token' for Implicit Flow (recommended), 'code' for Authorization Code Flow
-VITE_AUTHENTIK_RESPONSE_TYPE=id_token token
-
-# Frontend URL (used by backend for OAuth redirect)
+# Frontend URL (used for CORS)
 FRONTEND_URL=https://sudo.certs-admin.certs.gdg-oncampus.dev
+
+# CORS Configuration
+ALLOWED_ORIGINS=https://sudo.certs-admin.certs.gdg-oncampus.dev,https://certs.gdg-oncampus.dev
+
+# Brevo (Sendinblue) SMTP Configuration (unchanged)
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_USER=your_brevo_email@example.com
+SMTP_PASSWORD=your_brevo_api_key_here
+SMTP_FROM_EMAIL=noreply@gdg-oncampus.dev
+SMTP_FROM_NAME=GDGoC Certificate System
+
+# API URL for frontend
+VITE_API_URL=https://api.certs.gdg-oncampus.dev
 ```
 
-Replace:
-- `auth.your-domain.com` with your authentik domain
-- `<your-client-id>` with the Client ID from Step 2
-- `<your-client-secret>` with the Client Secret from Step 2 (only if using Authorization Code Flow)
+**Note**: You no longer need:
+- `AUTHENTIK_ISSUER`
+- `AUTHENTIK_JWKS_URI`
+- `AUTHENTIK_CLIENT_ID`
+- `AUTHENTIK_CLIENT_SECRET`
+- `VITE_AUTHENTIK_URL`
+- `VITE_AUTHENTIK_CLIENT_ID`
+- `VITE_AUTHENTIK_RESPONSE_TYPE`
+- `REQUIRE_ADMIN_GROUP`
 
-## Step 7: Test Authentication
+Authentication is now handled entirely by the authentik proxy provider through Nginx Proxy Manager.
+
+## Step 8: Test Authentication
 
 1. Navigate to `https://sudo.certs-admin.certs.gdg-oncampus.dev`
-2. Click "Sign in with authentik"
-3. You should be redirected to authentik login
-4. After successful login, you should be redirected back
-5. If `REQUIRE_ADMIN_GROUP=true` and you're in the `GDGoC-Admins` group, you'll see the dashboard
-6. If `REQUIRE_ADMIN_GROUP=false`, any authenticated user can access the dashboard
+2. You should be automatically redirected to authentik login page
+3. After successful login, you should be redirected back to the application
+4. If you're in the `GDGoC-Admins` group (and configured access control), you'll see the dashboard
+5. The application will read your user information from proxy headers set by authentik
+
+## How It Works
+
+When a user accesses the admin portal:
+
+1. **Request hits Nginx Proxy Manager** - User attempts to access `https://sudo.certs-admin.certs.gdg-oncampus.dev`
+2. **Forward Auth to authentik** - Nginx Proxy Manager forwards the authentication request to authentik outpost
+3. **authentik checks authentication** - If not authenticated, user is redirected to authentik login
+4. **User logs in** - User provides credentials to authentik
+5. **authentik sets session** - authentik creates a session and sets headers
+6. **Headers forwarded to application** - Nginx Proxy Manager forwards the request with these headers:
+   - `X-authentik-username` - Username
+   - `X-authentik-email` - User email
+   - `X-authentik-name` - User full name
+   - `X-authentik-uid` - User unique ID
+   - `X-authentik-groups` - User group memberships
+7. **Application reads headers** - Backend reads these headers to identify and authorize the user
 
 ## Troubleshooting
 
-### "Token exchange not implemented" ⚠️ COMMON ERROR
+### "Cannot access admin portal" or infinite redirect loop
 
-This is the most common authentication error and occurs when using Authorization Code Flow (`response_type=code`) without proper configuration.
+**Cause**: Nginx Proxy Manager is not properly forwarding auth requests to authentik, or authentik outpost is not running.
 
-**Quick Fix (Resolves Immediate Error):**
-1. Ensure `VITE_AUTHENTIK_RESPONSE_TYPE=id_token token` is set in your frontend `.env` file
-2. This uses Implicit Flow which returns tokens directly and avoids backend token exchange
-3. Rebuild your frontend: `npm run build`
-4. Clear your browser cache and try logging in again
+**Solution**:
+1. Verify authentik outpost is running and healthy
+2. Check Nginx Proxy Manager configuration for forward auth settings
+3. Ensure the forward auth URL points to your authentik outpost
+4. Check authentik logs: `docker logs -f <authentik-server-container>`
+5. Check Nginx Proxy Manager logs for authentication errors
 
-**⚠️ Security Warning:** Implicit Flow is **deprecated** by OAuth 2.0 best practices ([RFC 6749 Section 10.16](https://datatracker.ietf.org/doc/html/rfc6749#section-10.16), [OAuth 2.0 Security Best Current Practice](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics)) because it exposes tokens in URL fragments which can be leaked through browser history, referrer headers, and browser extensions. This quick fix resolves the immediate authentication error but should only be used temporarily.
+### "Access denied" or user cannot log in
 
-**Recommended for Production (More Secure):**
-Configure Authorization Code Flow properly:
-1. In authentik, set your provider's **Client Type** to `Confidential`
-2. Generate a **Client Secret** in authentik
-3. Add `AUTHENTIK_CLIENT_SECRET=<your-secret>` to your backend `.env`
-4. Set `VITE_AUTHENTIK_RESPONSE_TYPE=code` in your frontend `.env`
-5. Restart both backend and frontend services
+**Cause**: User is not in the `GDGoC-Admins` group or policy binding is misconfigured.
 
-**Why Authorization Code Flow is Better:**
-- Tokens never appear in URL (not logged or leaked through browser history)
-- Client secret adds an additional layer of security
-- Follows current OAuth 2.0 security best practices
-- The backend already has the token exchange endpoint implemented
+**Solution**:
+1. Go to authentik admin panel
+2. Navigate to **Directory > Users**
+3. Find the user and verify they are in the `GDGoC-Admins` group
+4. Check application policy bindings in **Applications > Applications > GDGoC Certificates > Policy / Group / User Bindings**
 
-### "Invalid redirect URI"
-- Ensure the redirect URI in authentik exactly matches: `https://sudo.certs-admin.certs.gdg-oncampus.dev/auth/callback`
-- Check for trailing slashes
+### Headers not being passed to application
 
-### "Invalid token"
-- Verify AUTHENTIK_ISSUER and AUTHENTIK_JWKS_URI are correct
-- Check that the token includes required claims (sub, email, name)
-- If using group-based access control, ensure the token includes the groups claim
+**Cause**: Nginx Proxy Manager is not configured to forward authentik headers.
 
-### "Access denied"
-- If `REQUIRE_ADMIN_GROUP=true`, user must be in the `GDGoC-Admins` group
-- Check group membership in authentik
-- Or set `REQUIRE_ADMIN_GROUP=false` to allow all authenticated users
+**Solution**:
+1. Ensure all required headers are configured in Nginx Proxy Manager (see NGINX_PROXY_MANAGER.md)
+2. Check that `proxy_set_header` directives are present in the advanced configuration
+3. Restart Nginx Proxy Manager after configuration changes
 
-### "CORS error"
-- Ensure ALLOWED_ORIGINS includes both domains
-- Verify Nginx Proxy Manager is forwarding correct headers
+### "User information not found" in application
 
-### "Token exchange failed"
-- Verify AUTHENTIK_CLIENT_ID and AUTHENTIK_CLIENT_SECRET are correct
-- Check that the redirect_uri matches exactly what's configured in authentik
-- Ensure the authorization code hasn't expired (codes typically expire after 1 minute)
-- Check backend logs for detailed error messages from authentik
+**Cause**: Application cannot read authentication headers from the proxy.
 
-## Additional Security
+**Solution**:
+1. Check backend logs to see which headers are being received
+2. Verify Nginx Proxy Manager is forwarding `X-authentik-*` headers
+3. Ensure application is deployed behind the proxy (not directly accessible)
 
-Consider implementing:
-1. **Token expiration**: Set appropriate token lifetime in authentik
-2. **Refresh tokens**: Enable refresh token rotation
-3. **MFA**: Require multi-factor authentication for admin users
-4. **Session limits**: Configure session policies in authentik
+### Changes to authentik not taking effect
+
+**Solution**:
+1. Restart the authentik outpost
+2. Clear browser cookies and cache
+3. Try in an incognito/private browser window
+4. Check authentik event logs for errors
+
+## Security Considerations
+
+1. **Application must only be accessible through proxy** - Never expose the application directly. All traffic must go through Nginx Proxy Manager with authentik authentication.
+2. **Header trust** - The application trusts headers set by the proxy. Ensure only Nginx Proxy Manager can reach your application backend.
+3. **Session timeout** - Configure appropriate session timeout in authentik (default is 24 hours)
+4. **MFA** - Enable multi-factor authentication in authentik for additional security
+5. **Audit logs** - Review authentik event logs regularly to monitor access
+
+## Benefits of Proxy Authentication
+
+- **Simpler application code** - No OAuth/OIDC complexity in the application
+- **Centralized authentication** - Single point of authentication for multiple apps
+- **Better security** - Authentication handled by dedicated security layer
+- **Easier maintenance** - Authentication updates don't require application changes
+- **Consistent UX** - Same login experience across all applications
 
 ## Resources
 

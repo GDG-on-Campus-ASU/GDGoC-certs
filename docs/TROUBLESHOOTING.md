@@ -10,126 +10,85 @@ This guide covers common issues and their solutions for the GDGoC Certificate Ge
 
 ## Authentication Errors
 
-### 🔥 "Token exchange not implemented"
+### 🔥 "Cannot access admin portal" or "Redirect loop"
 
-**Error Message:**
-```
-Authentication Failed
-Token exchange not implemented. Please configure your OIDC provider to return tokens directly.
-```
+**Error**: Cannot access admin portal, or browser shows "too many redirects" error.
 
-**Cause:** The application is using Authorization Code Flow (`response_type=code`) but the backend token exchange is not properly configured or not reachable.
-
-**Quick Fix (Resolves Immediate Error):**
-
-1. **Add environment variable to frontend `.env`:**
-   ```env
-   VITE_AUTHENTIK_RESPONSE_TYPE=id_token token
-   ```
-
-2. **Rebuild the frontend:**
-   ```bash
-   cd frontend
-   npm run build
-   ```
-
-3. **If using Docker:**
-   ```bash
-   docker compose down
-   docker compose up -d --build frontend
-   ```
-
-4. **Clear browser cache** and try logging in again
-
-**Why this works:** Using `id_token token` (Implicit Flow) returns tokens directly in the URL fragment, bypassing the need for backend token exchange.
-
-**⚠️ Security Note:** Implicit Flow is deprecated by OAuth 2.0 best practices (see [RFC 6749 Section 10.16](https://datatracker.ietf.org/doc/html/rfc6749#section-10.16) and [OAuth 2.0 Security Best Current Practice](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics)) and exposes tokens in URL fragments. This is a quick fix for immediate use. For production deployments, use Authorization Code Flow (see below).
-
-**Recommended Solution (More Secure for Production):**
-
-For production environments, properly configure Authorization Code Flow:
-
-1. In authentik, configure your provider with:
-   - **Client Type:** `Confidential`
-   - Generate a **Client Secret**
-
-2. Add to backend `.env`:
-   ```env
-   AUTHENTIK_CLIENT_SECRET=<your-client-secret>
-   ```
-
-3. Add to frontend `.env`:
-   ```env
-   VITE_AUTHENTIK_RESPONSE_TYPE=code
-   ```
-
-4. Restart services:
-   ```bash
-   docker compose restart backend frontend
-   ```
-
-### "Invalid redirect URI"
-
-**Error Message:** Redirect URI mismatch or invalid
+**Cause:** authentik forward authentication is not configured correctly in Nginx Proxy Manager, or authentik outpost is not running.
 
 **Solution:**
-1. Check that the redirect URI in authentik exactly matches your frontend URL
-2. Ensure format: `https://sudo.certs-admin.certs.gdg-oncampus.dev/auth/callback`
-3. No trailing slashes
-4. Must use HTTPS in production (HTTP allowed for `localhost` only)
 
-### "Access denied. Admin group membership required"
+1. **Verify authentik outpost is running:**
+   ```bash
+   # Check authentik containers
+   docker ps | grep authentik
+   ```
 
-**Cause:** User is not in the `GDGoC-Admins` group and `REQUIRE_ADMIN_GROUP=true`
+2. **Check Nginx Proxy Manager configuration:**
+   - Ensure `auth_request` directive is present in the Advanced tab
+   - Verify the forward auth URL points to your authentik outpost: `https://auth.your-domain.com/outpost.goauthentik.io`
+   - Confirm all `auth_request_set` and `proxy_set_header` directives are configured
+
+3. **Check authentik logs:**
+   ```bash
+   docker logs -f <authentik-server-container>
+   ```
+
+4. **Clear browser cache and cookies**, then try in incognito mode
+
+5. **Verify the application is bound to authentik outpost:**
+   - In authentik, go to **Applications > Outposts**
+   - Ensure your application is listed under the outpost
+
+### "Access denied" or "Not authorized"
+
+**Cause:** User is not in the `GDGoC-Admins` group or doesn't have permission to access the application.
 
 **Solution:**
 
 **Option 1 - Add user to admin group:**
 1. Go to authentik admin panel
-2. Navigate to **Directory > Groups**
-3. Click on `GDGoC-Admins` group
-4. Add the user to the group
+2. Navigate to **Directory > Users**
+3. Find the user
+4. Go to **Groups** tab
+5. Add user to `GDGoC-Admins` group
 
-**Option 2 - Disable group requirement:**
-1. Edit backend `.env`:
-   ```env
-   REQUIRE_ADMIN_GROUP=false
-   ```
-2. Restart backend service:
-   ```bash
-   docker compose restart backend
-   ```
+**Option 2 - Check application policy bindings:**
+1. Navigate to **Applications > Applications** in authentik
+2. Click on `GDGoC Certificates`
+3. Go to **Policy / Group / User Bindings** tab
+4. Verify the user or their group is bound to the application
 
-### "Invalid token" or "Token verification failed"
+### "User information not found" or "Invalid user"
 
-**Causes:**
-- Token expired
-- Wrong JWKS URI
-- Token missing required claims
+**Cause:** Application cannot read authentication headers from the proxy, or headers are not being passed correctly.
 
 **Solution:**
-1. Verify environment variables in backend `.env`:
-   ```env
-   AUTHENTIK_ISSUER=https://auth.your-domain.com/application/o/gdgoc-certs/
-   AUTHENTIK_JWKS_URI=https://auth.your-domain.com/application/o/gdgoc-certs/jwks/
-   AUTHENTIK_CLIENT_ID=<your-client-id>
-   ```
-
-2. Ensure authentik provider includes these scopes:
-   - `openid`
-   - `profile`
-   - `email`
-
-3. Check backend logs for detailed error:
+1. **Check backend logs** to see which headers are being received:
    ```bash
    docker compose logs backend -f
    ```
 
+2. **Verify Nginx Proxy Manager is forwarding headers:**
+   - Review the Advanced configuration in NPM
+   - Ensure all `proxy_set_header X-authentik-*` directives are present
+
+3. **Test header forwarding:**
+   - Use browser developer tools > Network tab
+   - Check request headers sent to the backend
+   - Look for `X-authentik-username`, `X-authentik-email`, etc.
+
+4. **Ensure application is only accessible through proxy:**
+   - Application should not be directly accessible without going through Nginx Proxy Manager
+   - All traffic must pass through the proxy for headers to be set
+
 ## CORS Errors
+
+**Note:** With authentik proxy provider, CORS should be less of an issue since authentication happens at the proxy level. However, you may still encounter CORS errors if the frontend and backend domains are not properly configured.
 
 ### "CORS policy: No 'Access-Control-Allow-Origin' header"
 
-**Cause:** Frontend origin is not in the allowed origins list
+**Cause:** Frontend origin is not in the allowed origins list, or proxy is not forwarding headers correctly.
 
 **Solution:**
 1. Edit backend `.env`:
@@ -148,6 +107,7 @@ For production environments, properly configure Authorization Code Flow:
    - `X-Forwarded-For`
    - `X-Forwarded-Proto`
    - `X-Real-IP`
+   - `Host`
 
 ## Database Errors
 
@@ -311,7 +271,7 @@ If your issue is not covered here:
 
 ## Related Documentation
 
-- [Authentik Setup Guide](AUTHENTIK_SETUP.md)
+- [authentik Setup Guide](AUTHENTIK_SETUP.md) - Configure authentik Proxy Provider
 - [Deployment Guide](../DEPLOYMENT.md)
 - [Brevo Setup Guide](BREVO_SETUP.md)
-- [Nginx Proxy Manager Setup](NGINX_PROXY_MANAGER.md)
+- [Nginx Proxy Manager Setup](NGINX_PROXY_MANAGER.md) - Configure forward authentication
