@@ -83,6 +83,12 @@ This domain requires authentication through authentik.
    proxy_set_header X-authentik-name $authentik_name;
    proxy_set_header X-authentik-uid $authentik_uid;
    
+   # SECURITY: Proxy authentication secret (RECOMMENDED for production)
+   # Set this header to match PROXY_AUTH_SECRET in backend .env
+   # This prevents header spoofing if application is accidentally exposed directly
+   # Generate with: openssl rand -hex 32
+   proxy_set_header X-Proxy-Auth-Secret "your_secure_random_secret_here";
+   
    # Configuration for authentik forward auth endpoint
    location /outpost.goauthentik.io {
        proxy_pass https://auth.your-domain.com/outpost.goauthentik.io;
@@ -105,7 +111,9 @@ This domain requires authentication through authentik.
    client_max_body_size 10M;
    ```
 
-   **Important**: Replace `auth.your-domain.com` with your actual authentik domain.
+   **Important**: 
+   - Replace `auth.your-domain.com` with your actual authentik domain.
+   - Replace `your_secure_random_secret_here` with the same secret set as `PROXY_AUTH_SECRET` in your backend `.env` file. Generate a strong secret with: `openssl rand -hex 32`
 
 7. Click **Save**
 
@@ -199,6 +207,10 @@ The API should also be protected with authentik authentication.
        proxy_set_header X-authentik-email $authentik_email;
        proxy_set_header X-authentik-name $authentik_name;
        proxy_set_header X-authentik-uid $authentik_uid;
+       
+       # SECURITY: Proxy authentication secret (RECOMMENDED for production)
+       # Set this header to match PROXY_AUTH_SECRET in backend .env
+       proxy_set_header X-Proxy-Auth-Secret "your_secure_random_secret_here";
        
        proxy_pass http://gdgoc-backend:3001;
        proxy_set_header Host $host;

@@ -10,6 +10,11 @@
  * - X-authentik-name: User full name
  * - X-authentik-uid: User unique ID
  * - X-authentik-groups: Comma-separated list of groups
+ * 
+ * Security: To prevent header spoofing if the application is accidentally exposed
+ * directly (bypassing the proxy), you can optionally configure a shared secret
+ * via PROXY_AUTH_SECRET environment variable. The proxy should send this in the
+ * X-Proxy-Auth-Secret header.
  */
 
 /**
@@ -17,6 +22,23 @@
  * Reads user information from headers set by authentik proxy provider
  */
 export const authenticateFromProxy = async (req, res, next) => {
+  // Optional: Verify request comes from trusted proxy using shared secret
+  const proxySecret = process.env.PROXY_AUTH_SECRET;
+  if (proxySecret) {
+    const receivedSecret = req.headers['x-proxy-auth-secret'];
+    if (receivedSecret !== proxySecret) {
+      console.error('Proxy authentication failed: Invalid or missing proxy secret');
+      return res.status(401).json({ 
+        error: 'Unauthorized. Request must come from authenticated proxy.' 
+      });
+    }
+  } else {
+    // Log warning in production if proxy secret is not configured
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('SECURITY WARNING: PROXY_AUTH_SECRET is not set. Application may be vulnerable to header spoofing if directly accessible.');
+    }
+  }
+
   // Read authentication headers set by authentik proxy
   const username = req.headers['x-authentik-username'];
   const email = req.headers['x-authentik-email'];
